@@ -7,7 +7,7 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 	# Initialize iteration data.
 	it_times <- list()
 	it_p_vals <- list()
-	it_sets <- list()
+	it_sets <- list(seed)
 
 	# Find dimensions	
 	n1 = ncol(M1) 
@@ -176,7 +176,7 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		it_times[[it]] <- difftime(Sys.time(), it_start, units="secs")
 		
 		# Store iteration data.
-		it_sets[[it]] <- A
+		it_sets[[it+1]] <- A
 		it_p_vals[[it]] <- test
 	} #while(difference > 0 & length(A) > 10)
 	
