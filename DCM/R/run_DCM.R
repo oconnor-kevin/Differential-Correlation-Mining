@@ -3,6 +3,11 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 	
 	# Calculate runtime
 	starttime = Sys.time()
+	
+	# Initialize iteration data.
+	it_times <- list()
+	it_p_vals <- list()
+	it_sets <- list()
 
 	# Find dimensions	
 	n1 = ncol(M1) 
@@ -35,7 +40,9 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 	
 	# Continue searching until convergence on non-degenerate set
 	while(difference > 0 & length(A) > 5){
-		
+		# Start iteration timer.
+	  it_start <- Sys.time()
+	  
 		xA1 = M1[A,]
 		xA2 = M2[A,]
 		
@@ -120,6 +127,8 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 			
 		}
 		
+		print(newA)
+		
 		
 		# Check to see if algorithm is oscillating between two similar sets or jumping sideways between sets
 
@@ -162,6 +171,13 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		
 		# Count iterations
 		it = it + 1
+		
+		# Stop iteration timer and save.
+		it_times[[it]] <- difftime(Sys.time(), it_start, units="secs")
+		
+		# Store iteration data.
+		it_sets[[it]] <- A
+		it_p_vals[[it]] <- test
 	} #while(difference > 0 & length(A) > 10)
 	
 	# New length of A
@@ -190,5 +206,5 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 	}
 		
 	# Save converged set and properties
-	return(list(found = found, mc1 = meanA1, mc2 = meanA2, its = it, time = time, pvals = test, startdels = startdels))
+	return(list(found = found, mc1 = meanA1, mc2 = meanA2, its = it, time = time, pvals = test, startdels = startdels, it_sets = it_sets, it_p_vals = it_p_vals, it_times = it_times))
 }

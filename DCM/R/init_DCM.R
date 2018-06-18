@@ -1,23 +1,24 @@
-init_DCM <-
-function(M1, M2, k, start =c(), del = c()){
-	# Takes pre-prepared Matrix (standardized and optionally Quantile Normalized). Looks for high correlation in M1 and low/negative correlation in M2, finds group of size k.
-    
+init_DCM <- function(M1, M2, k, start =c(), del = c()){
+	 # Takes pre-prepared Matrix (standardized and optionally Quantile Normalized). Looks for high correlation in M1 and low/negative correlation in M2, finds group of size k.
+   sets <- list()
+   it_times <- list()
+   
    if(length(del) != 0){
-		# Record dimension
-		real_p = dim(M1)[1]
-		idcs = (1:real_p)[-del]
+      # Record dimension
+	  	real_p = dim(M1)[1]
+		  idcs = (1:real_p)[-del]
 
-		# Remove ignored rows
-		M1 = M1[-del,]
-		M2 = M2[-del,]
-	}else{
-		# Record dimension
-		p = dim(M1)[1]
-		idcs = 1:p
-	}
+		  # Remove ignored rows
+		  M1 = M1[-del,]
+		  M2 = M2[-del,]
+	 } else {
+	  	# Record dimension
+		  p = dim(M1)[1]
+		  idcs = 1:p
+	 }
 	
     
-    # Lengths
+   # Lengths
     n1 = dim(M1)[2]
     n2 = dim(M2)[2]
     
@@ -41,6 +42,9 @@ function(M1, M2, k, start =c(), del = c()){
 	# Initialize for loop
 	done = FALSE
 	it = 0
+	
+	# Store seed as first set.
+	sets[[it+1]] <- idcs[orig_A]
 
 	# Find correlations of all genes with only genes in A
 	cross_1 = round(M1 %*% t(M1[A,]), digits = 10)
@@ -66,7 +70,7 @@ function(M1, M2, k, start =c(), del = c()){
 	
 	# Iterate until convergence
 	while(!done){
-    
+    it_start <- Sys.time()
       	# Rowsum Differences
 		diffs12 = rows_1 - rows_2
 			
@@ -95,7 +99,7 @@ function(M1, M2, k, start =c(), del = c()){
 			# Switch "out" and "in" indices from their lists
 			A[best_out] = inn
 			notA[best_in] = out
-		
+			
 			# Find correlation vector for "in"
 			new_1 = round(M1 %*% M1[inn,], digits = 10)
 			new_1[inn] = 0 # So Fisher isn't inf
@@ -113,7 +117,13 @@ function(M1, M2, k, start =c(), del = c()){
 			cross_2[,best_out] = new_2
 			
 			# Increase iteration count
-			it = it + 1	
+			it = it + 1
+			
+			# Store new set A.
+			sets[[it+1]] <- idcs[A]
+			
+			# Store iteration time.
+			it_times[[it]] <- difftime(Sys.time(), it_start, units="secs")
 		}
 	}
 	time = difftime(Sys.time(), start, units="secs")
@@ -121,5 +131,5 @@ function(M1, M2, k, start =c(), del = c()){
 	# Translate back to real indices
 	A = idcs[A]
 	
-	return(list(seed = orig_A, found = A, iterations = it, time = time))	
+	return(list(seed = orig_A, found = A, iterations = it, time = time, sets = sets, it_times = it_times))	
 }
