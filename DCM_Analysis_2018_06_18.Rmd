@@ -1,0 +1,135 @@
+---
+title: "DCM Analysis LumA vs. LumB"
+author: "Kevin O'Connor"
+date: "6/18/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Libraries and directories.
+library(dplyr)
+setwd("/Users/kevinoconnor/Documents/Research/DCM/2018_06_10 19_33_33")
+```
+
+In this document, I will analyze the results of applying DCM to the cancer subtypes, LumA and LumB. For this purpose, the DCM code has been modified to save important information from each iteration. In the case of LumA vs. LumB, we saw that 5 DC sets were observed after running the algorithm. So, the code now stores iteration-level data from each of these.
+
+```{r list_files}
+list.files(file.path(getwd(), "Debug_Output"))
+```
+
+We see that the initialization data and console output is also stored. For now, we will look at the initialization procedure and the search which found the first set. 
+
+```{r read_data_1}
+load(file.path(getwd(), "Debug_Output/Initialization.RData"))
+attributes(initialization)
+```
+
+Looking at the time that the initialization took,
+
+```{r init_1}
+n_its <- initialization$iterations
+it_time <- initialization$time
+plot(unlist(initialization$it_times), main="Time of Each Iteration for Initialization", ylab="Seconds")
+```
+
+In total the initialization procedure took `r n_its` iterations and `r round(it_time/60, 2)` minutes. 
+
+Now looking at the first DC search procedure,
+
+```{r read_data_2}
+load(file.path(getwd(), "Debug_Output/DCM_1.RData"))
+attributes(DCM)
+```
+
+As observed before, we have
+
+```{r dcm_1}
+DCM$its
+```
+
+i.e., the algorithm reached the max number of iterations and never converged. The times that each iteration took are
+
+```{r dcm_2}
+round(unlist(DCM$it_times)/60, 2)
+```
+
+where the units are in minutes. This is surprisingly fast considering that the whole procedure took several hours to complete. It might be helpful to look at these times for each of the five searches.
+
+```{r dcm_3}
+no_output <- lapply(1:5, function(i){
+  load(file.path(getwd(), paste0("Debug_Output/DCM_", i, ".RData")))
+  times <- round(unlist(DCM$it_times)/60, 2)
+  print(paste("search:", i))
+  print("iteration times:")
+  print(times)
+  print(paste("total time:", sum(times)))
+  print('')
+})
+```
+
+Now let's look at the size of the DC set through each iteration.
+
+```{r dcm_4}
+load(file.path(getwd(), paste0("Debug_Output/Initialization.RData")))
+init_set_size <- length(initialization$"found")
+no_output <- lapply(1:5, function(i){
+  load(file.path(getwd(), paste0("Debug_Output/DCM_", i, ".RData")))
+  set_sizes <- lapply(DCM$it_sets, function(i){length(unlist(i))}) %>% unlist()
+  plot(c(init_set_size, set_sizes), main=paste0("Set Size for Search ", i), xlab="Iteration", ylim=c(0, 3000))
+})
+```
+
+\section{Relationship Between Consecutive Sets}
+Having looked at the size of the sets changing iteration to iteration, we are also interested in determining whether there is some core set of variables which are present in each iteration in addition to some random noise. First we look at the sizes of the itersections and the Jacard index between each consecutive set. Here the Jacard index is given by
+
+\[J(A, B) = \frac{|A \cap B|}{|A \cup B|}\]
+
+Additionally, in each plot of intersection sizes the size of the total intersection over all iterations is included as a solid horizontal line. In other words, this line represents the number of variables that are included in the set for every iteration.
+
+```{r dcm_5}
+jacard <- function(a, b){
+  length(intersect(a, b))/length(union(a, b))
+}
+
+load(file.path(getwd(), paste0("Debug_Output/Initialization.RData")))
+init_set <- length(initialization$"found")
+no_output <- lapply(1:5, function(i){
+  load(file.path(getwd(), paste0("Debug_Output/DCM_", i, ".RData")))
+  
+  # Iterate through consecutive sets and record intersections and jacards.
+  tot_int <- DCM$it_sets[[1]]
+  vals <- lapply(1:(length(DCM$it_sets)-1), function(j){
+    set_a <- DCM$it_sets[[j]]
+    set_b <- DCM$it_sets[[j+1]]
+    tot_int <- length(intersect(tot_int, set_b))
+    if(j < (length(DCM$it_sets)-1)){
+      return(list("intersect" = length(intersect(set_a, set_b)),
+                  "jacard"    = jacard(set_a, set_b)))
+    } else {
+      return(list("intersect" = length(intersect(set_a, set_b)),
+                  "jacard"    = jacard(set_a, set_b),
+                  "tot_int"   = tot_int))
+    }
+  })
+  inter_vals <- lapply(vals, function(v){v$"intersect"}) %>% unlist()
+  jac_vals   <- lapply(vals, function(v){v$"jacard"}) %>% unlist()
+  tot_int <- vals[[length(vals)]]$"tot_int"
+  
+  # Make plots.
+  plot(inter_vals, 
+       main=paste0("Consecutive Intersection Sizes of Search ", i), 
+       xlab="Iteration", 
+       ylab="Intersection Sizes",
+       ylim=c(0,3000))
+  abline(h=tot_int)
+  plot(jac_vals, 
+       main=paste0("Consecutive Jacard Index Values of Search ", i), 
+       xlab="Iteration", 
+       ylab="Jacard Index", 
+       ylim=c(0,1))
+})
+```
