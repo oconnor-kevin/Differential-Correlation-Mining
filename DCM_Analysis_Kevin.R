@@ -1,9 +1,9 @@
 # TITLE: DCM_Analysis_Kevin.R
 # AUTHOR: Kevin O'Connor(, Di Wu)
-# DATE MODIFIED: 6/17/18
+# DATE MODIFIED: 6/20/18
 
 # Switches.
-is.test <- FALSE
+is.test <- TRUE
 
 # Libraries and directories.
 library(R.utils)
@@ -18,15 +18,15 @@ if(is.test){
 }
 
 # Reading data.
-SeqData   <- read.delim("BRCA.1201.FINAL.Cluster.txt" , header=F)
-sampleTab <- read.delim("BRCA.1218_pam50scores.FINAL.txt")
-
+if(!(exists("SeqData") & exists("sampleTab"))){
+  SeqData   <- read.delim("BRCA.1201.FINAL.Cluster.txt" , header=F)
+  sampleTab <- read.delim("BRCA.1218_pam50scores.FINAL.txt")
+}
+  
 data   <- SeqData[-c(1:5),-(1:3)] 
 SamBar <- SeqData[,-c(1:3)]
 
 samTab <- filter(sampleTab, Use=="YES")
-##head(sampleTab)
-##head(samTab)
 
 ## Matching barcodes in both datasets.
 SamBar0 <- unlist(lapply(SamBar[1,], as.character))
@@ -51,14 +51,10 @@ dataM0 <- dataM
 dataM[dataM==0] <- minD
 
 ## Taking log of data.
-logD<-log2(dataM)
-### Check distribution after log.
-####boxplot(logD[,sample(1021, 10)])
-####hist(logD[,sample(1021, 1)] ,breaks=20)
+logD <- log2(dataM)
 
 ## Renaming columns.
-###colnames(design)
-colnames(design) = unlist(lapply(strsplit(colnames(design), "Call"), function(x) x[[2]]))
+colnames(design) <- unlist(lapply(strsplit(colnames(design), "Call"), function(x) x[[2]]))
 ###colnames(design)
 #### "Basal"  "Her2"   "LumA"   "LumB"   "Normal"
 
@@ -67,59 +63,6 @@ table(i)
 # min sample size 82
 numZeroPerG <- apply(dataM0, 1, function(x) length(which(x==0)) )
 hist(numZeroPerG)
-# i<- apply(detP<0.01, 1, any) 
-#aW<-arrayWeights(object=y)
-#aWi<-arrayWeights(object=y[i,])
-
-iS     <- which(numZeroPerG<200)
-logD.f <- logD[iS,]
-dim(logD.f) # 16446
-boxplot(logD.f[,sample(1021, 10)])
-
-par(mfrow=c(2,2))
-hist(apply(logD,2, median))
-hist(apply(logD.f,2, median))
-
-# takes too long
-#plotMDS(logD,  col=as.numeric(samTab0$Call) )# , labels =tar0$barr, dim.plot=c(1,2))
-#plotMDS(logD.f,  col=as.numeric(samTab0$Call) ) #, labels =tar0$barr, dim.plot=c(2,3))
-
-fit <-lmFit(logD , design=design)
-fit <- eBayes(fit)
-fit$df.prior #1.108
-fit.f <-lmFit(logD.f, design=design)
-fit.f <- eBayes(fit.f)
-fit.f$df.prior #2.11
-# high better
-
-geneNM <- unlist(lapply(strsplit(as.character(SeqData[,1]), "\\|"), function(y) y[1]))
-geneNM.f<- geneNM [iS]
-fit$gene <- geneNM  
-fit.f$gene <- geneNM.f
-
-# "Basal"  "Her2"   "LumA"   "LumB"   "Normal"
-contrast.matrix  <- makeContrasts(BasalvsLumA= Basal-LumA, LumAvsLumB=LumA-LumB,
-                                  levels=design)
-cfit  <- contrasts.fit( fit  , contrast.matrix )
-efit <- eBayes(cfit )
-summary(efit $s2.post)
-expresults0 <-decideTests(efit, method="global",adjust.method="fdr",p.value=0.05,lfc=1)
-summary(expresults0)
-
-#BasalvsLumA LumAvsLumB
-#-1        2756        413
-#0        15158      18567
-#1         2617       1551
-
-cfit.f  <- contrasts.fit( fit.f , contrast.matrix )
-efit.f <- eBayes(cfit.f )
-summary(efit.f $s2.post)
-expresults1 <-decideTests(efit.f ,method="global",adjust.method="fdr",p.value=0.05,lfc=1)
-summary(expresults1)
-#BasalvsLumA LumAvsLumB
-#-1        2163        218
-#0        12677      15219
-#1         1606       1009
 
 ## Create matrix for each group.
 tar <- samTab0$Call
