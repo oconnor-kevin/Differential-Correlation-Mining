@@ -3,7 +3,7 @@
 # DATE MODIFIED: 6/20/18
 
 # Switches.
-is.test <- TRUE
+is.test <- FALSE
 
 # Libraries and directories.
 library(R.utils)
@@ -87,7 +87,7 @@ dir.create(out.dir)
 setwd(out.dir)
 
 start.time <- Sys.time()
-n.iter <- 1
+n.iter <- 10
 p.vals.l <- list()
 for(i in 1:n.iter){
   ## Take random sample of data under null.
@@ -113,3 +113,10 @@ for(i in 1:n.iter){
 save(p.vals.l, file=file.path(out.dir, "Null_P_Vals.RData"))
 difftime(Sys.time(), start.time)
 
+# Making histograms of p-values.
+load(file.path(out.dir, "Null_P_Vals.RData"))
+pdf(file=file.path(out.dir, "Null_P_Vals.pdf"))
+for(i in 1:n.iter){
+  hist(p.vals.l[[i]], main=paste0("P-Values from Random Sample ", i), xlab="P-Values")
+}
+dev.off()
