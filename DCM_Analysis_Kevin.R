@@ -1,9 +1,10 @@
 # TITLE: DCM_Analysis_Kevin.R
 # AUTHOR: Kevin O'Connor(, Di Wu)
-# DATE MODIFIED: 6/20/18
+# DATE MODIFIED: 6/22/18
 
 # Switches.
-is.test <- TRUE
+is.test <- FALSE
+run.small.sample.test <- FALSE
 
 # Libraries and directories.
 library(R.utils)
@@ -85,48 +86,48 @@ dir.create(out.dir)
 setwd(out.dir)
 
 ## Test run for small number of genes.
-#a <- DCM(MAM.basal[1:500, ], 
-#         MAM.LA[1:500, ], 
-#         max.iter = 10, 
-#         max.time = 100, 
-#         alpha = .05,  
-#         strict='low', 
-#         echo=TRUE)
-a <- DCM_Kevin(MAM.basal[1:500, ], 
-               MAM.LA[1:500, ], 
-               max.iter = 10, 
-               max.time = 100, 
-               alpha = .05,  
-               strict='low', 
-               echo=TRUE)
-### max.iter = 10 can be increased from 10 to 20, 30…. but it will take longer.
-save(a, file=filePath(out.dir,"SmallSampleTest.RData"))
+if(run.small.sample.test){
+  a <- DCM_Kevin(MAM.basal[1:500, ], 
+                 MAM.LA[1:500, ], 
+                 max.iter = 10, 
+                 max.time = 100, 
+                 alpha = .05,  
+                 strict='low', 
+                 echo=TRUE)
+  ### max.iter = 10 can be increased from 10 to 20, 30…. but it will take longer.
+  save(a, file=filePath(out.dir,"SmallSampleTest.RData"))
+}
+  
+## LumA vs LumB, No QR (Quantile Normalization ?)
+lumA.lumB.50.noQR <- DCM_Kevin(MAM.LA,
+                               MAM.LB, 
+                               max.iter = 10, 
+                               max.time = 100, 
+                               alpha    = .05,
+                               est.size = 50,
+                               strict   = 'low', 
+                               echo     = TRUE)
+save(lumA.lumB.50.noQR, file=filePath(out.dir, "DCM.lumA.vs.lumB.noQR.50.RData"))
 
-# noQR
-DCM.basal.vs.lumA.noQR=DCM(MAM.basal, 
-                           MAM.LA, 
-                           max.iter = 10, 
-                           max.time = 100, 
-                           alpha = .05, 
-                           strict='low', 
-                           echo=TRUE)
-save(DCM.basal.vs.lumA.noQR, file=filePath(out.dir, "DCM.basal.vs.lumA.noQR.RData"))
-#save(DCM.basal.vs.lumA.noQR, file="/Users/diwu/Dropbox/UNCwork/projects/GTEX2018/br/BR_RNAseq/RData/DCM.basal.vs.lumA.noQR.RData" )
+lumA.lumB.200.noQR <- DCM_Kevin(MAM.LA,
+                                MAM.LB, 
+                                max.iter = 10, 
+                                max.time = 100, 
+                                alpha    = .05,
+                                est.size = 200,
+                                strict   = 'low', 
+                                echo     = TRUE)
+save(lumA.lumB.200.noQR, file=filePath(out.dir, "DCM.lumA.vs.lumB.noQR.200.RData"))
 
-# remove 4773 rows due to too many zeros
-#[1] "Overall cor, group 1: 0.007730"
-#[1] "Overall cor, group 2: 0.014709"
-
-
-DCM.lumA.vs.lumB.noQR=DCM_Kevin(MAM.LA,
-                          MAM.LB, 
-                          max.iter = 10, 
-                          max.time = 100, 
-                          alpha = .05,
-                          strict='low', 
-                          echo = TRUE)
-save(DCM.lumA.vs.lumB.noQR, file=filePath(out.dir, "DCM.lumA.vs.lumB.noQR.RData"))
-#save(DCM.lumA.vs.lumB.noQR, file="/Users/diwu/Dropbox/UNCwork/projects/GTEX2018/br/BR_RNAseq/RData/DCM.lumA.vs.lumB.noQR.RData" )
+lumA.lumB.125.noQR <- DCM_Kevin(MAM.LA,
+                                MAM.LB, 
+                                max.iter = 10, 
+                                max.time = 100, 
+                                alpha    = .05,
+                                est.size = 125,
+                                strict   = 'low', 
+                                echo     = TRUE)
+save(lumA.lumB.125.noQR, file=filePath(out.dir, "DCM.lumA.vs.lumB.noQR.125.RData"))
 
 #[1] "Removing 4697 rows - too many zero expressions."
 #[1] "Warning: Data is non-normal; consider quantile normalizing.  (Set QN = TRUE)"
@@ -138,9 +139,10 @@ DCM.lumA.vs.basal.noQR=DCM(MAM.LA,
                            MAM.basal, 
                            max.iter = 10, 
                            max.time = 100, 
-                           alpha = .05,  
-                           strict='low', 
-                           echo = TRUE)
+                           alpha    = .05,
+                           est.size = 50,
+                           strict   = 'low', 
+                           echo     = TRUE)
 save(DCM.lumA.vs.basal.noQR, file=filePath(out.dir, "DCM.lumA.vs.basal.noQR.RData"))
 #save(DCM.lumA.vs.basal.noQR, file="/Users/diwu/Dropbox/UNCwork/projects/GTEX2018/br/BR_RNAseq/RData/DCM.lumA.vs.basal.noQR.RData" )
 
