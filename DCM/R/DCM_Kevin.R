@@ -16,7 +16,8 @@ DCM_Kevin <- function(M1,
                       QN = FALSE, 
                       resid.full = FALSE, 
                       echo = FALSE, 
-                      strict = "low", 
+                      strict = "low",
+                      initialize = TRUE,
                       debug = TRUE,
                       debug.dir = ""){
 	
@@ -65,20 +66,22 @@ DCM_Kevin <- function(M1,
 	while(length(startdels) < p-kval & ans <= max.groups & tottime < max.time){
 		
 		# Find initial starting set, ignoring already tried starting points
-		if(length(start) < 5){
-			#tmp = init_DCM(M1, M2, k=kval, del = startdels)$found
-		  initialization <- init_DCM(M1, M2, k=kval, del=startdels)
-		  if(debug){
-		    save(initialization, file=filePath(debug.dir, "Initialization.RData"))
-		  }
-		  
-		  tmp <- initialization$found
+		if (length(start) < 5){
+			if (initialize){
+  		  initialization <- init_DCM(M1, M2, k=kval, del=startdels)
+	  	  if(debug){
+		      save(initialization, file=filePath(debug.dir, "Initialization.RData"))
+		    }
+		    tmp <- initialization$found
+			} else {
+			  tmp <- sample(1:nrow(M1), kval)
+			}
 		}else{
 			tmp = start
 			start = c()
 		}
 	
-		if(echo){
+		if (echo){
 			print("Initialized")
 			print(tmp)
 		  #print(initialization)
