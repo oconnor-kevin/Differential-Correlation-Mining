@@ -1,9 +1,11 @@
 # TITLE: Null_Distribution_Simulation.R
 # AUTHOR: Kevin O'Connor
-# DATE MODIFIED: 6/20/18
+# DATE MODIFIED: 6/25/18
 
-# Switches.
+# Switches and settings.
 is.test <- FALSE
+init.size.v <- c(50, 200, 1000)
+n.iter <- 10
 
 # Libraries and directories.
 library(R.utils)
@@ -85,38 +87,45 @@ MAM.LB    <- logD [, wlb]
 out.dir <- filePath(getwd(), gsub("-", "_", Sys.time()))
 dir.create(out.dir)
 setwd(out.dir)
-
-start.time <- Sys.time()
-n.iter <- 10
-p.vals.l <- list()
-for(i in 1:n.iter){
-  ## Take random sample of data under null.
-  rand.inds <- sample(1:ncol(MAM.LA), round(ncol(MAM.LA)/2))
-  MAM.LA.1 <- MAM.LA[,rand.inds]
-  MAM.LA.2 <- MAM.LA[,-rand.inds]
+for (k in init.size.v){
+  ## Make directory for this seed size.
+  size.dir <- filePath(out.dir, paste0("Seed Size ", k))
+  dir.create(size.dir)
+  setwd(size.dir)
   
-  ## Run DCM on null data.
-  DCM.Null.LA <- DCM_Kevin(MAM.LA.1, 
-                           MAM.LA.2, 
-                           max.iter = 2,
-                           max.groups = 1,
-                           max.time = 100, 
-                           alpha = .05,  
-                           strict='low',
-                           echo=TRUE, 
-                           QN=TRUE, 
-                           resid.full=TRUE)
-  load(file.path(out.dir, "Debug_Output/DCM_1.RData"))
-  p.vals <- DCM$"pvals"
-  p.vals.l[[i]] <- p.vals
+  start.time <- Sys.time()
+  p.vals.l <- list()
+  for(i in 1:n.iter){
+    ## Take random sample of data under null.
+    rand.inds <- sample(1:ncol(MAM.LA), round(ncol(MAM.LA)/2))
+    MAM.LA.1 <- MAM.LA[,rand.inds]
+    MAM.LA.2 <- MAM.LA[,-rand.inds]
+    
+    ## Run DCM on null data.
+    DCM.Null.LA <- DCM_Kevin(MAM.LA.1, 
+                             MAM.LA.2, 
+                             max.iter   = 1,
+                             max.groups = 1,
+                             max.time   = 100,
+                             est.size   = k,
+                             alpha      = .05,  
+                             strict     = 'low',
+                             echo       = TRUE, 
+                             QN         = TRUE,
+                             initialize = FALSE,
+                             resid.full = TRUE)
+    load(file.path(size.dir, "Debug_Output/DCM_1.RData"))
+    p.vals <- DCM$"pvals"
+    p.vals.l[[i]] <- p.vals
+  }
+  save(p.vals.l, file=file.path(size.dir, "Null_P_Vals.RData"))
+  difftime(Sys.time(), start.time)
+  
+  # Making histograms of p-values.
+  load(file.path(size.dir, "Null_P_Vals.RData"))
+  pdf(file=file.path(size.dir, "Null_P_Vals.pdf"))
+  for(i in 1:n.iter){
+    hist(p.vals.l[[i]], main=paste0("P-Values from Random Sample ", i), xlab="P-Values")
+  }
+  dev.off()
 }
-save(p.vals.l, file=file.path(out.dir, "Null_P_Vals.RData"))
-difftime(Sys.time(), start.time)
-
-# Making histograms of p-values.
-load(file.path(out.dir, "Null_P_Vals.RData"))
-pdf(file=file.path(out.dir, "Null_P_Vals.pdf"))
-for(i in 1:n.iter){
-  hist(p.vals.l[[i]], main=paste0("P-Values from Random Sample ", i), xlab="P-Values")
-}
-dev.off()
