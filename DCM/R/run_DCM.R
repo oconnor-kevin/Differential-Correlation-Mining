@@ -6,6 +6,8 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 	
 	# Initialize iteration data.
 	it_times <- list()
+	it_test_stats <- list()
+	it_test_var <- list()
 	it_p_vals <- list()
 	it_sets <- list(seed)
 
@@ -92,13 +94,11 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		corsm2 = rowMeans(stdize(mean2s)*xA2)*n2
 
 		# Make test stat and variance
-					
 		obss = corsm1*n_m1s - corsm2*n_m2s
 		
 		#sds = sqrt(makePhi(n_m1s*corsm1, n_m1s^2 - 1/(k-1), k-1)/n1 + makePhi(n_m2s*corsm2, n_m2s^2 - 1/(k-1), k-1)/n2)
 		#sds = sapply(1:k, function(x) sqrt(makeYvar(xA1[x,], mean1s[x,], xA2[x,], mean2s[x,])))
 		sds = sqrt(sapply(1:k, function(x) makeVar(xA1[x,], xA1[-x,]) + makeVar(xA2[x,], xA2[-x,])))
-
 		
 		# Find pvals
 		test_in = pt(-obss/sds, min(c(n1-1, n2-1)), 0)
@@ -178,6 +178,8 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		# Store iteration data.
 		it_sets[[it+1]] <- A
 		it_p_vals[[it]] <- test
+		it_test_stats[[it]] <- c(obs, obss)
+		it_test_var[[it]] <- c(sd^2, sds^2)
 	} #while(difference > 0 & length(A) > 10)
 	
 	# New length of A
@@ -206,5 +208,16 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 	}
 		
 	# Save converged set and properties
-	return(list(found = found, mc1 = meanA1, mc2 = meanA2, its = it, time = time, pvals = test, startdels = startdels, it_sets = it_sets, it_p_vals = it_p_vals, it_times = it_times))
+	return(list(found = found, 
+	            mc1 = meanA1, 
+	            mc2 = meanA2, 
+	            its = it, 
+	            time = time, 
+	            pvals = test, 
+	            startdels = startdels, 
+	            it_sets = it_sets, 
+	            it_p_vals = it_p_vals, 
+	            it_test_stats = it_test_stats,
+	            it_test_var = it_test_var,
+	            it_times = it_times))
 }
