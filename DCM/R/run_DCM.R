@@ -166,6 +166,13 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		#print(prevA)
 		#print(newA)
 		
+		# Check for extended cycling. Assumes each set in it_sets is sorted.
+		A_sorted <- sort(A)
+		if(any(unlist(lapply(it_sets, function(s){all(s==A_sorted)})))){
+		  if(echo){print("Cycle Detected")}
+		  difference <- 0
+		}		
+		
 		# Print progress if desired
 		if(echo){print(sprintf("Size = %i", length(A)))}	
 		
@@ -176,7 +183,7 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		it_times[[it]] <- difftime(Sys.time(), it_start, units="secs")
 		
 		# Store iteration data.
-		it_sets[[it+1]] <- A
+		it_sets[[it+1]] <- A_sorted
 		it_p_vals[[it]] <- test
 		it_test_stats[[it]] <- c(obs, obss)
 		it_test_var[[it]] <- c(sd^2, sds^2)
