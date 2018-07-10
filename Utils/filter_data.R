@@ -62,10 +62,5 @@ filter_data <- function(data.mat,
     
     # Transform data.
     out.data.mat <- log2(out.data.mat)
-    
-    # Filter out rows that have variance close to 0 after transforming.
-    dat.var.tr <- apply(out.data.mat, 1, var)
-    out.data.mat <- out.data.mat[(dat.var.tr >= min.var) & 
-                                   (dat.var.tr <= max.var),]
   }
 }
