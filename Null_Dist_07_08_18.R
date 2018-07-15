@@ -1,6 +1,6 @@
-# TITLE: Null_Distribution_Simulation.R
+# TITLE: Null_Dist_07_08_18.R
 # AUTHOR: Kevin O'Connor
-# DATE MODIFIED: 7/5/18
+# DATE MODIFIED: 7/8/18
 
 # Switches and settings.
 is.test <- TRUE

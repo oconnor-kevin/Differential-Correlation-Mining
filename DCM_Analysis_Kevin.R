@@ -1,10 +1,10 @@
 # TITLE: DCM_Analysis_Kevin.R
 # AUTHOR: Kevin O'Connor(, Di Wu)
-# DATE MODIFIED: 6/22/18
+# DATE MODIFIED: 7/9/18
 
 # Switches.
-is.test <- FALSE
-run.small.sample.test <- FALSE
+is.test <- TRUE
+run.small.sample.test <- TRUE
 
 # Libraries and directories.
 library(R.utils)
@@ -89,18 +89,38 @@ setwd(out.dir)
 if(run.small.sample.test){
   a <- DCM_Kevin(MAM.basal[1:500, ], 
                  MAM.LA[1:500, ], 
-                 max.iter = 10, 
+                 max.iter = 100, 
                  max.time = 100, 
-                 alpha = .05,  
+                 alpha = .01,  
                  strict='low', 
                  echo=TRUE)
   ### max.iter = 10 can be increased from 10 to 20, 30…. but it will take longer.
   save(a, file=filePath(out.dir,"SmallSampleTest.RData"))
 }
-  
-## LumA vs LumB, No QR (Quantile Normalization ?)
+
 lumA.lumB.50.noQR <- DCM_Kevin(MAM.LA,
                                MAM.LB, 
+                               max.iter = 10, 
+                               max.time = 100, 
+                               alpha    = .01,
+                               est.size = 50,
+                               strict   = 'low', 
+                               echo     = TRUE)
+save(lumA.lumB.50.noQR, file=filePath(out.dir, "DCM.lumA.vs.lumB.noQR.50.RData"))
+
+  
+## LumA vs LumB, No QR (Quantile Normalization ?)
+### Removing variables with variance in the lower 5th percentile.
+vars.la <- apply(MAM.LA, 1, var)
+vars.lb <- apply(MAM.LB, 1, var)
+q.la <- quantile(vars.la, 0.05)
+q.lb <- quantile(vars.lb, 0.05)
+bad.vars.la <- which(vars.la <= q.la)
+bad.vars.lb <- which(vars.lb <= q.lb)
+bad.vars <- union(bad.vars.la, bad.vars.lb)
+
+lumA.lumB.50.noQR <- DCM_Kevin(MAM.LA[-bad.vars,],
+                               MAM.LB[-bad.vars,], 
                                max.iter = 10, 
                                max.time = 100, 
                                alpha    = .05,
