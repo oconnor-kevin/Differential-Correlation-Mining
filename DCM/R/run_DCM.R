@@ -168,9 +168,14 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		
 		# Check for extended cycling. Assumes each set in it_sets is sorted.
 		A_sorted <- sort(A)
-		if(any(unlist(lapply(it_sets, function(s){all(s==A_sorted)})))){
-		  if(echo){print("Cycle Detected")}
-		  difference <- 0
+		if(any(unlist(lapply(it_sets, function(s){
+		  if(length(s) == length(A_sorted)){
+		    return(all(s==A_sorted))
+		  } else {
+		    return(FALSE)
+		  }})))){
+		    if(echo){print("Cycle Detected")}
+		    difference <- 0
 		}		
 		
 		# Print progress if desired
