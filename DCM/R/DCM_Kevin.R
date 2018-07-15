@@ -28,7 +28,7 @@ DCM_Kevin <- function(M1,
     if(debug.dir == ""){
       debug.dir <- file.path(getwd(), "Debug_Output")
     }
-    dir.create(debug.dir)
+    dir.create(debug.dir, showWarnings=FALSE)
     
     sink(file=file.path(debug.dir, "Console_Output.txt"))
   }
@@ -75,6 +75,7 @@ DCM_Kevin <- function(M1,
 		    tmp <- initialization$found
 			} else {
 			  tmp <- sample(1:nrow(M1), kval)
+			  initialization <- c()
 			}
 		}else{
 			tmp = start
