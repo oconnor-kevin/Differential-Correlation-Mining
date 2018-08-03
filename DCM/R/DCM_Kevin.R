@@ -1,6 +1,6 @@
 # TITLE: DCM_Kevin.R
 # AUTHOR: Kevin O'Connor(, Kelly Bodwin)
-# DATE MODIFIED: 6/10/18
+# DATE MODIFIED: 8/3/18
 
 # DCM_Kevin contains added debugging functionality including storing
 #  data from each iteration.
@@ -19,7 +19,8 @@ DCM_Kevin <- function(M1,
                       strict = "low",
                       initialize = TRUE,
                       debug = TRUE,
-                      debug.dir = ""){
+                      debug.dir = "",
+                      new.p.val.method = FALSE){
 	
   ################### Setup Debugging ##################
   

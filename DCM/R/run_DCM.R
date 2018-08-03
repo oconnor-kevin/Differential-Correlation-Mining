@@ -1,5 +1,11 @@
-run_DCM <-
-function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
+run_DCM <- function(M1, 
+                    M2, 
+                    seed, 
+                    del = c(), 
+                    echo = FALSE, 
+                    alpha = 0.05, 
+                    max.iter = 50,
+                    new.p.val.method = FALSE){
 	
 	# Calculate runtime
 	starttime = Sys.time()
@@ -45,70 +51,95 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		# Start iteration timer.
 	  it_start <- Sys.time()
 	  
-		xA1 = M1[A,]
-		xA2 = M2[A,]
-		
-		y1 = M1[-A,]
-		y2 = M2[-A,]
-		
-		# Find mean vectors
-		mean1 = colMeans(xA1)
-		mean2 = colMeans(xA2)
-			
-		# Find norms
-		n_m1 = sqrt(sum(mean1^2))
-		n_m2 = sqrt(sum(mean2^2))
-		
-		# Length of A
-		k = length(A)
-		
-		# Find test quantities for all variables
-		corsm1 = t(cor(mean1, t(y1)))
-		corsm2 = t(cor(mean2, t(y2)))
-		
-		# Test stat and variance
-		obs = corsm1*n_m1 - corsm2*n_m2
-		
-		#sd = sqrt(makePhi(n_m1*corsm1, n_m1^2 - 1/k, k)/n1 + makePhi(n_m2*corsm2, n_m2^2 - 1/k, k)/n2)
-		#sd = sqrt(makeYvars(y1, mean1, y2, mean2))
-		sd = sqrt(makeVars(y1, xA1) + makeVars(y2, xA2))
-
-
-		# p-values for rows not in A
-		test_out = pt(-obs/sd, min(c(n1-1, n2-1)), 0)
-		#test_out = pnorm(-obs, 0, sd)
-		
-			
-		## Calculate p-values for rows in A
-		
-		# Adjust means to not include row
-		mean1s = -t(t(xA1) - mean1*k)/(k-1)
-		mean2s = -t(t(xA2) - mean2*k)/(k-1)
-
-		# Find new mean norms
-		n_m1s = sqrt(rowSums(mean1s*mean1s))
-		n_m2s = sqrt(rowSums(mean2s*mean2s))
-		
-		# Find cors of rows with means
-		corsm1 = rowMeans(stdize(mean1s)*xA1)*n1
-		corsm2 = rowMeans(stdize(mean2s)*xA2)*n2
-
-		# Make test stat and variance
-		obss = corsm1*n_m1s - corsm2*n_m2s
-		
-		#sds = sqrt(makePhi(n_m1s*corsm1, n_m1s^2 - 1/(k-1), k-1)/n1 + makePhi(n_m2s*corsm2, n_m2s^2 - 1/(k-1), k-1)/n2)
-		#sds = sapply(1:k, function(x) sqrt(makeYvar(xA1[x,], mean1s[x,], xA2[x,], mean2s[x,])))
-		sds = sqrt(sapply(1:k, function(x) makeVar(xA1[x,], xA1[-x,]) + makeVar(xA2[x,], xA2[-x,])))
-		
-		# Find pvals
-		test_in = pt(-obss/sds, min(c(n1-1, n2-1)), 0)
-		#test_in = pnorm(-obss, 0, sds)
-		
-		# Combine all p-values
-		test = P
-		test[-A] = test_out
-		test[A] = test_in
-		
+	  # Store separate data matrices.
+	  xA1 <- M1[A,]
+	  xA2 <- M2[A,]
+	  
+	  y1 <- M1[-A,]
+	  y2 <- M2[-A,]
+	  
+	  if(new.p.val.method){
+	    # Calculate difference in correlations.
+	    diff.cor <- cor(t(M1)) - cor(t(M2))
+	    
+	    # Calculate test statistics.
+	    test.stats <- sapply(1:p, function(gene){
+	      return(mean(diff.cor[gene, A]))
+	    })
+	    
+	    # Calculate standard error.
+	    std.err <- sd(test.stats)
+	    
+	    # Calculate p-values.
+	    test <- 2*pt(-abs(test.stats / std.err), df=min(n1-1, n2-1))
+	  } else {
+	    # Calculate standard errors.
+	    sd <- sqrt(makeVars(y1, xA1) + makeVars(y2, xA2))
+	    sds <- sqrt(sapply(1:nrow(xA1), function(x) makeVar(xA1[x,], xA1[-x,]) + makeVar(xA2[x,], xA2[-x,])))
+	    
+	    std.errs <- 1:p
+	    std.errs[-A] <- sd
+	    std.errs[A] <- sds
+	    
+	    # Find mean vectors
+	    mean1 = colMeans(xA1)
+	    mean2 = colMeans(xA2)
+	    
+	    # Find norms
+	    n_m1 = sqrt(sum(mean1^2))
+	    n_m2 = sqrt(sum(mean2^2))
+	    
+	    # Length of A
+	    k = length(A)
+	    
+	    # Find test quantities for all variables
+	    corsm1 = t(cor(mean1, t(y1)))
+	    corsm2 = t(cor(mean2, t(y2)))
+	    
+	    # Test stat and variance
+	    obs = corsm1*n_m1 - corsm2*n_m2
+	    
+	    #sd = sqrt(makePhi(n_m1*corsm1, n_m1^2 - 1/k, k)/n1 + makePhi(n_m2*corsm2, n_m2^2 - 1/k, k)/n2)
+	    #sd = sqrt(makeYvars(y1, mean1, y2, mean2))
+	    sd = sqrt(makeVars(y1, xA1) + makeVars(y2, xA2))
+	    
+	    
+	    # p-values for rows not in A
+	    test_out = pt(-obs/sd, min(c(n1-1, n2-1)), 0)
+	    #test_out = pnorm(-obs, 0, sd)
+	    
+	    
+	    ## Calculate p-values for rows in A
+	    
+	    # Adjust means to not include row
+	    mean1s = -t(t(xA1) - mean1*k)/(k-1)
+	    mean2s = -t(t(xA2) - mean2*k)/(k-1)
+	    
+	    # Find new mean norms
+	    n_m1s = sqrt(rowSums(mean1s*mean1s))
+	    n_m2s = sqrt(rowSums(mean2s*mean2s))
+	    
+	    # Find cors of rows with means
+	    corsm1 = rowMeans(stdize(mean1s)*xA1)*n1
+	    corsm2 = rowMeans(stdize(mean2s)*xA2)*n2
+	    
+	    # Make test stat and variance
+	    obss = corsm1*n_m1s - corsm2*n_m2s
+	    
+	    #sds = sqrt(makePhi(n_m1s*corsm1, n_m1s^2 - 1/(k-1), k-1)/n1 + makePhi(n_m2s*corsm2, n_m2s^2 - 1/(k-1), k-1)/n2)
+	    #sds = sapply(1:k, function(x) sqrt(makeYvar(xA1[x,], mean1s[x,], xA2[x,], mean2s[x,])))
+	    sds = sqrt(sapply(1:k, function(x) makeVar(xA1[x,], xA1[-x,]) + makeVar(xA2[x,], xA2[-x,])))
+	    
+	    # Find pvals
+	    test_in = pt(-obss/sds, min(c(n1-1, n2-1)), 0)
+	    #test_in = pnorm(-obss, 0, sds)
+	    
+	    # Combine all p-values
+	    test = P
+	    test[-A] = test_out
+	    test[A] = test_in
+	  }
+	
 		# Update A to include significant rows
 		newA = bhy(test, alpha = alpha)
 
@@ -190,8 +221,13 @@ function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05, max.iter = 50){
 		# Store iteration data.
 		it_sets[[it+1]] <- A_sorted
 		it_p_vals[[it]] <- test
-		it_test_stats[[it]] <- c(obs, obss)
-		it_test_var[[it]] <- c(sd^2, sds^2)
+		if(new.p.val.method){
+		  it_test_stats[[it]] <- test.stats
+		  it_test_var[[it]] <- std.err^2
+		} else {
+		  it_test_stats[[it]] <- c(obs, obss)
+		  it_test_var[[it]] <- c(sd^2, sds^2)
+		}
 	} #while(difference > 0 & length(A) > 10)
 	
 	# New length of A
