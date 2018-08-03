@@ -1,6 +1,6 @@
 # TITLE: DCM_Analysis_Kevin.R
 # AUTHOR: Kevin O'Connor(, Di Wu)
-# DATE MODIFIED: 7/9/18
+# DATE MODIFIED: 8/3/18
 
 # Switches.
 is.test <- TRUE
@@ -12,88 +12,62 @@ library(dplyr)
 library(limma)
 
 sourceDirectory("/Users/kevinoconnor/Documents/Research/DCM/Differential-Correlation-Mining/DCM/R")
+sourceDirectory("/Users/kevinoconnor/Documents/Research/DCM/Differential-Correlation-Mining/Utils")
 if(is.test){
-  setwd("/Users/kevinoconnor/Documents/Research/DCM/Test")  
+  data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Test")  
 } else {
-  setwd("/Users/kevinoconnor/Documents/Research/DCM")
+  data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Data")
 }
+out.dir <- filePath(data.dir, gsub("-", "_", Sys.time()))
+dir.create(out.dir)
+setwd(out.dir)
 
 # Reading data.
 if(!(exists("SeqData") & exists("sampleTab"))){
-  SeqData   <- read.delim("BRCA.1201.FINAL.Cluster.txt" , header=F)
-  sampleTab <- read.delim("BRCA.1218_pam50scores.FINAL.txt")
+  SeqData   <- read.delim(file.path(data.dir, "BRCA_1201_FINAL_Cluster.txt") , 
+                          header=F)
+  sampleTab <- read.delim(file.path(data.dir, "BRCA_1218_pam50scores_FINAL.txt"))
 }
-  
 data   <- SeqData[-c(1:5),-(1:3)] 
 SamBar <- SeqData[,-c(1:3)]
-
 samTab <- filter(sampleTab, Use=="YES")
+gene.names <- SeqData[-c(1:5), 1]
+rownames(data) <- gene.names
 
-## Matching barcodes in both datasets.
+# Match barcodes in both datasets.
 SamBar0 <- unlist(lapply(SamBar[1,], as.character))
-m <- match(SamBar0, as.character(samTab$Barcode))
-##m[1:5]
-##table(is.na(m))
-
+m       <- match(SamBar0, as.character(samTab$Barcode))
 samTab0 <- samTab[m, ]
-# matched with data
+dataM0  <- apply(data, 2, as.numeric)
+rownames(dataM0) <- as.vector(gene.names)
 
-dataM=apply(data,2, as.numeric)
-design <- model.matrix(~0+samTab0$Call)
-##dim(dataM)
-## [1] 20531  1201
-##hist(dataM[,1] ) # How the reading data was generated? RPKM? There are zeros
-##hist(log2(dataM[,1] ))
+# Filter and transform data.
+dataM <- filter_data(dataM0,
+                     min.var=100,
+                     max.var=10000)
 
-## Replacing zeroes with minimum value.
-minD <- min(apply(dataM, 2,function(x) min(x[x!=0])  ))
-###[1] 0.0021
-dataM0 <- dataM
-dataM[dataM==0] <- minD
-
-## Taking log of data.
-logD <- log2(dataM)
-
-## Renaming columns.
-colnames(design) <- unlist(lapply(strsplit(colnames(design), "Call"), function(x) x[[2]]))
-###colnames(design)
-#### "Basal"  "Her2"   "LumA"   "LumB"   "Normal"
-
-i <- apply(dataM==0, 1, all)  #all false
-table(i)
-# min sample size 82
-numZeroPerG <- apply(dataM0, 1, function(x) length(which(x==0)) )
-hist(numZeroPerG)
-
-## Create matrix for each group.
+# Create matrix for each group.
 tar <- samTab0$Call
 wb  <- which(tar=="Basal")
 wla <- which(tar=="LumA")
 wlb <- which(tar=="LumB")
-MAM.basal <- logD[, wb]
-MAM.LA    <- logD[, wla]
-MAM.LB    <- logD [, wlb] 
-
-###dim(MAM.basal) # 20531 191
-###dim(MAM.LA) # 572
-###dim(MAM.LB) #219
+MAM.basal <- dataM[, wb]
+MAM.LA    <- dataM[, wla]
+MAM.LB    <- dataM[, wlb]
 
 
 # Running DCM
-## Create output directory.
-out.dir <- filePath(getwd(), gsub("-", "_", Sys.time()))
-dir.create(out.dir)
-setwd(out.dir)
-
 ## Test run for small number of genes.
 if(run.small.sample.test){
   a <- DCM_Kevin(MAM.basal[1:500, ], 
                  MAM.LA[1:500, ], 
-                 max.iter = 100, 
+                 max.iter = 10,
+                 est.size = 50,
                  max.time = 100, 
                  alpha = .01,  
                  strict='low', 
-                 echo=TRUE)
+                 echo=TRUE,
+                 new.p.val.method=TRUE)
   ### max.iter = 10 can be increased from 10 to 20, 30…. but it will take longer.
   save(a, file=filePath(out.dir,"SmallSampleTest.RData"))
 }
@@ -102,12 +76,39 @@ lumA.lumB.50.noQR <- DCM_Kevin(MAM.LA,
                                MAM.LB, 
                                max.iter = 10, 
                                max.time = 100, 
-                               alpha    = .01,
+                               alpha    = .05,
                                est.size = 50,
                                strict   = 'low', 
                                echo     = TRUE)
 save(lumA.lumB.50.noQR, file=filePath(out.dir, "DCM.lumA.vs.lumB.noQR.50.RData"))
 
+# Looking at overlaps between found sets and known gene sets.
+gene.names.filtered <- rownames(MAM.LA)
+found.genes.1 <- gene.names.filtered[lumA.lumB.50.noQR$DC_sets[[1]]]
+found.genes.1 <- sapply(found.genes.1, function(gene.str){
+  char.str <- strsplit(gene.str, '')[[1]]
+  ind <- which(char.str=='|')[1]
+  return(paste0(char.str[1:(ind-1)], collapse=""))
+})
+
+overlaps.1 <- sapply(Hs.gmtl.c2, function(gene.set){
+    return(length(intersect(gene.set, found.genes.1)))
+}) %>% sort(decreasing=TRUE)
+
+gene.names.filtered <- rownames(MAM.LA)
+found.genes.2 <- gene.names.filtered[lumA.lumB.50.noQR$DC_sets[[2]]]
+found.genes.2 <- sapply(found.genes.2, function(gene.str){
+  char.str <- strsplit(gene.str, '')[[1]]
+  ind <- which(char.str=='|')[1]
+  return(paste0(char.str[1:(ind-1)], collapse=""))
+})
+
+overlaps.2 <- sapply(Hs.gmtl.c2, function(gene.set){
+  return(length(intersect(gene.set, found.genes.2)))
+}) %>% sort(decreasing=TRUE)
+
+genes.set.sizes <- sapply(Hs.gmtl.c2, length)
+genes.set.sizes[names(overlaps.1)[1]]
   
 ## LumA vs LumB, No QR (Quantile Normalization ?)
 ### Removing variables with variance in the lower 5th percentile.
