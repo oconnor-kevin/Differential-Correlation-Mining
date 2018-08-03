@@ -1,7 +1,7 @@
 ---
 title: "RNAseq DCM Analysis LumA vs. LumB"
 author: "Kevin O'Connor"
-date: "7/20/2018"
+date: "7/25/2018"
 output:
   pdf_document: default
   html_document: default
@@ -12,8 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Libraries and directories.
 library(dplyr)
-data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Data/7_20_18")
+data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Data/7_25_18")
 ```
+
+This document contains diagnostics from running the DCM algorithm on RNAseq data with altered filtering including small mean removal, small variance removal, large zero count removal, and PC removal.
 
 ```{r dcm_5, echo=FALSE}
 jacard <- function(a, b){
@@ -21,13 +23,13 @@ jacard <- function(a, b){
 }
 
 # Get initial set.
-load(file.path(data.dir, "Initialization.RData"))
+load(file.path(data.dir, "pcft_Initialization.RData"))
 init_set <- length(initialization$"found")
 
 # Collect data from each search.
-no_output <- lapply(1:5, function(i){
+no_output <- lapply(1:2, function(i){
   # Load data from i'th search.
-  load(file.path(data.dir, paste0("DCM_", i, ".RData")))
+  load(file.path(data.dir, paste0("pcft_DCM_", i, ".RData")))
   
   # Iterate through consecutive sets and record intersections and jacards.
   tot_int <- DCM$it_sets[[1]]
@@ -63,7 +65,7 @@ no_output <- lapply(1:5, function(i){
        main=paste0("Search ", i),
        xlab="Iteration", 
        ylab="Size",
-       ylim=c(0, 1600),
+       ylim=c(0, 3000),
        pch=4,
        type="b")
   ## Adding set sizes
