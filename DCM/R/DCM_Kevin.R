@@ -1,6 +1,6 @@
 # TITLE: DCM_Kevin.R
 # AUTHOR: Kevin O'Connor(, Kelly Bodwin)
-# DATE MODIFIED: 8/3/18
+# DATE MODIFIED: 8/22/18
 
 # DCM_Kevin contains added debugging functionality including storing
 #  data from each iteration.
@@ -62,13 +62,14 @@ DCM_Kevin <- function(M1,
 	ans = 1
 	kval = est.size
 	startdels = c()
+	converged = TRUE
 	
 	# Keep searching until all rows or exhausted, or max groups or time is reached
-	while(length(startdels) < p-kval & ans <= max.groups & tottime < max.time){
+	while(length(startdels) < p-kval & ans <= max.groups & tottime < max.time & converged){
 		
 		# Find initial starting set, ignoring already tried starting points
-		if (length(start) < 5){
-			if (initialize){
+		if(length(start) < 5){
+			if(initialize){
   		  initialization <- init_DCM(M1, M2, k=kval, del=startdels)
 	  	  if(debug){
 		      save(initialization, file=filePath(debug.dir, "Initialization.RData"))
@@ -83,7 +84,7 @@ DCM_Kevin <- function(M1,
 			start = c()
 		}
 	
-		if (echo){
+		if(echo){
 			print("Initialized")
 			print(tmp)
 		  #print(initialization)
@@ -93,22 +94,20 @@ DCM_Kevin <- function(M1,
 		
 		# Run search procedure with specified values
 		DCM = run_DCM(M1, M2, seed = tmp, echo = echo, max.iter = max.iter)
-		
 		if(debug){
 		  save(DCM, file=filePath(debug.dir, paste0("DCM_", ans, ".RData")))
 		}
-		
 		print(DCM)
 		
-		startdels = c(startdels, DCM$startdels)
+		startdels <- c(startdels, DCM$startdels)
+		res       <- DCM$found
+		k         <- length(res)
 
-		res = DCM$found
-		
-		k = length(res)
-		
+		# Check whether algorithm converged.
+		converged <- (DCM$its < max.iter)
+				
 		# Ignore groups that are too small to be significant
 		if(k > 10){
-			
 			# Check for diag blocks
 			if(res[1] == 0){
 				diag = TRUE
@@ -119,65 +118,50 @@ DCM_Kevin <- function(M1,
 			if(diag){
 				res1 = res[1:cut]
 				res2 = res[-(1:cut)]
-				
-				# Find average correlations of result within each group
-				### Fix this for length 1
-				#crossCor1 = mean(cor(t(M1[res1,]), t(M1[res2,])))
-				#crossCor2 = mean(cor(t(M2[res1,]), t(M2[res2,])))
-				
+
 				if(echo){
 					print(sprintf("Found an off-diagonal block group of size %i", k))
-					#print(sprintf("cross cor 1 = %f", crossCor1))
-					#print(sprintf("cross cor 2 = %f", crossCor2))
 				}
-				
-				
 			}else{
-			
 				# Announce result
 				if(echo){
 					print(sprintf("Found a group of size %i", k))
 					print(sprintf("cor 1 = %f", DCM$mc1))
 					print(sprintf("cor 2 = %f", DCM$mc2))
 				}
-			
 			}
 			
 			# Residualize remaining data for continued search
-			M1[res,] = resid_DCM(M1[res,], QN = QN)
-			M2[res,] = resid_DCM(M2[res,], QN = QN)
+		  if(converged){
+		    M1[res,] <- resid_DCM(M1[res,], QN=QN)
+		    M2[res,] <- resid_DCM(M2[res,], QN=QN)
+		  }
 			
 			# Save results
 			if(diag){
-				DC_sets[[ans]] = list("Block Diag", idcs[res1], idcs[res2])
-				#meanCor1[[ans]] = crossCor1
-				#meanCor2[[ans]] = crossCor2				
-				meanCor1[[ans]] = 0
-				meanCor2[[ans]] = 0
+				DC_sets[[ans]]  <- list("Block Diag", idcs[res1], idcs[res2])
+				meanCor1[[ans]] <- 0
+				meanCor2[[ans]] <- 0
 			}else{
-				DC_sets[[ans]] = idcs[res]
-				meanCor1[[ans]] = DCM$mc1
-				meanCor2[[ans]] = DCM$mc2
+				DC_sets[[ans]]  <- idcs[res]
+				meanCor1[[ans]] <- DCM$mc1
+				meanCor2[[ans]] <- DCM$mc2
 			}
-			iterations[[ans]] = DCM$its
-			time[[ans]] = DCM$time
+			iterations[[ans]] <- DCM$its
+			time[[ans]]       <- DCM$time
 			if(debug){
-  			init[[ans]] = initialization
+  			init[[ans]]     <- initialization
 			}
 			
 			# Count number of sets found
-			ans = ans+1
-			
-		}else{
-			
+			ans <- ans+1
+		}else{ # Else if found set smaller than 10 variables
 			# If group is degenerate, do not try it again
-			startdels = c(startdels, tmp)
-			
-		}# if(k > 10)
+			startdels <- c(startdels, tmp)
+		}
 		
 		# Check total runtime
-		tottime = difftime(Sys.time(), starttime, units = "hours")
-		
+		tottime <- difftime(Sys.time(), starttime, units = "hours")
 	} # while(length(dels) < p-kval & ans < max.groups)
 	
 	# Print reason for algorithm halting
