@@ -1,10 +1,10 @@
 # TITLE: DCM_Analysis_Kevin.R
 # AUTHOR: Kevin O'Connor(, Di Wu)
-# DATE MODIFIED: 8/3/18
+# DATE MODIFIED: 8/8/18
 
 # Switches.
-is.test <- TRUE
-run.small.sample.test <- TRUE
+is.test <- FALSE
+run.small.sample.test <- FALSE
 
 # Libraries and directories.
 library(R.utils)
@@ -55,25 +55,50 @@ MAM.basal <- dataM[, wb]
 MAM.LA    <- dataM[, wla]
 MAM.LB    <- dataM[, wlb]
 
+# Standardize row within each group.
+stdize <- function(gene){
+  # Make zero mean.
+  gene <- gene - mean(gene)
+  
+  # Make sum of squares one.
+  gene <- gene/sqrt(sum(gene^2))
+  
+  return(gene)
+}
+
+MAM.LA.std <- MAM.LA
+for(r in 1:nrow(MAM.LA)){
+  MAM.LA.std[r,] <- stdize(MAM.LA[r,])
+}
+
+MAM.LB.std <- MAM.LB
+for(r in 1:nrow(MAM.LB)){
+  MAM.LB.std[r,] <- stdize(MAM.LB[r,])
+}
+
+MAM.basal.std <- MAM.basal
+for(r in 1:nrow(MAM.basal)){
+  MAM.basal.std[r,] <- stdize(MAM.basal[r,])
+}
 
 # Running DCM
 ## Test run for small number of genes.
 if(run.small.sample.test){
-  a <- DCM_Kevin(MAM.basal[1:500, ], 
-                 MAM.LA[1:500, ], 
+  a <- DCM_Kevin(MAM.basal.std[1:500, ], 
+                 MAM.LA.std[1:500, ], 
                  max.iter = 10,
                  est.size = 50,
                  max.time = 100, 
                  alpha = .01,  
                  strict='low', 
                  echo=TRUE,
-                 new.p.val.method=TRUE)
+                 new.p.val.method=FALSE)
   ### max.iter = 10 can be increased from 10 to 20, 30…. but it will take longer.
   save(a, file=filePath(out.dir,"SmallSampleTest.RData"))
 }
 
-lumA.lumB.50.noQR <- DCM_Kevin(MAM.LA,
-                               MAM.LB, 
+lumA.lumB.50.noQR <- DCM_Kevin(MAM.LA.std,
+                               MAM.LB.std, 
                                max.iter = 10, 
                                max.time = 100, 
                                alpha    = .05,
@@ -108,7 +133,7 @@ overlaps.2 <- sapply(Hs.gmtl.c2, function(gene.set){
 }) %>% sort(decreasing=TRUE)
 
 genes.set.sizes <- sapply(Hs.gmtl.c2, length)
-genes.set.sizes[names(overlaps.1)[1]]
+genes.set.sizes[names(overlaps.2)[1:10]]
   
 ## LumA vs LumB, No QR (Quantile Normalization ?)
 ### Removing variables with variance in the lower 5th percentile.

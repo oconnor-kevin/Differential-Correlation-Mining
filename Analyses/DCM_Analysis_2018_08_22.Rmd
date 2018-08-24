@@ -1,0 +1,39 @@
+---
+title: "RNAseq DCM Analysis LumA vs. LumB"
+author: "Kevin O'Connor"
+date: "8/22/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Libraries and directories.
+library(dplyr)
+data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Data/2018_08_08 18:51:30/No QR/Debug_Output")
+```
+
+This document includes data from a DCM run with RNAseq data after row-normalization. 
+\[ \alpha = 0.05\]
+\[ QN = FALSE \]
+
+```{r dcm_1}
+# Load data.
+load(file.path(data.dir, "DCM_1.RData"))
+
+# Plot test statistics.
+hist(DCM$it_test_stats[[1]], main="Test statistics in Iteration 1", xlab="Test Statistics")
+```
+```{r dcm_4}
+hist(DCM$it_test_stats[[11]], main="Test statistics in Iteration 11", xlab="Test Statistics")
+```
+
+```{r dcm_2}
+# Plot p-values.
+hist(DCM$it_p_vals[[1]], main="P-values in Iteration 1", xlab="P-values")
+```
+```{r dcm_3}
+hist(DCM$it_p_vals[[11]], main="P-values in Iteration 11", xlab="P-values")
+```

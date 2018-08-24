@@ -65,7 +65,7 @@ no_output <- lapply(1:4, function(i){
        main=paste0("Search ", i),
        xlab="Iteration", 
        ylab="Size",
-       ylim=c(0, 100),
+       ylim=c(0, 10000),
        pch=4,
        type="b")
   ## Adding set sizes
