@@ -1,0 +1,218 @@
+---
+title: "RNAseq DCM Analysis"
+author: "Kevin O'Connor"
+date: "9/5/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Libraries and directories.
+library(dplyr)
+
+# Switches.
+is.test <- TRUE
+
+# Libraries and directories.
+library(R.utils)
+library(dplyr)
+library(limma)
+
+sourceDirectory("/Users/kevinoconnor/Documents/Research/DCM/Differential-Correlation-Mining/DCM/R")
+sourceDirectory("/Users/kevinoconnor/Documents/Research/DCM/Differential-Correlation-Mining/Utils")
+if(is.test){
+  data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Test")  
+} else {
+  data.dir <- file.path("/Users/kevinoconnor/Documents/Research/DCM/Data")
+}
+out.dir <- filePath(data.dir, gsub("-", "_", Sys.time()))
+dir.create(out.dir)
+setwd(out.dir)
+
+# Reading data.
+if(!(exists("SeqData") & exists("sampleTab"))){
+  SeqData   <- read.delim(file.path(data.dir, "BRCA_1201_FINAL_Cluster.txt") , 
+                          header=F)
+  sampleTab <- read.delim(file.path(data.dir, "BRCA_1218_pam50scores_FINAL.txt"))
+}
+data   <- SeqData[-c(1:5),-(1:3)] 
+SamBar <- SeqData[,-c(1:3)]
+samTab <- filter(sampleTab, Use=="YES")
+gene.names <- SeqData[-c(1:5), 1]
+rownames(data) <- gene.names
+
+# Match barcodes in both datasets.
+SamBar0 <- unlist(lapply(SamBar[1,], as.character))
+m       <- match(SamBar0, as.character(samTab$Barcode))
+samTab0 <- samTab[m, ]
+dataM0  <- apply(data, 2, as.numeric)
+rownames(dataM0) <- as.vector(gene.names)
+```
+
+In this document, we perform some exploratory data anlysis on the RNAseq data. We begin by filtering and log-transforming the data.
+
+```{r filter_data}
+# Filter and transform the data.
+dataM <- filter_data(dataM0, min.var=10, max.var=1e24)
+hist(dataM, xlab="log-expressions", main="Histogram of Gene Expression")
+```
+
+```{r mean_vs_sd}
+# Investigate mean vs standard deviation.
+mean.v <- apply(dataM, 1, mean)
+sd.v   <- apply(dataM, 1, sd)
+
+plot(sd.v, mean.v, main="Mean vs Standard Deviation of Log-Expression")
+```
+
+```{r mad}
+# Investigate mean absolute deviation and compare to standard deviation.
+mad.v <- apply(dataM, 1, mad)
+hist(sd.v/mad.v)
+```
+
+So some genes have small MAD's compared to their standard deviations. As the MAD is more robust to outliers, genes with a low MAD/SD ratio likely contain serious outliers.
+
+```{r mad_2}
+# Set sd/mad threshold.
+th <- 2
+
+# Find genes with mad/sd exceeding threshold.
+bad.genes <- sd.v/mad.v > th
+plot(sd.v, mean.v, col=ifelse(bad.genes, "red", "black"), cex=0.3)
+```
+
+The plot above highlights the "bad genes" in red. The proportion of genes which are bad is `r mean(bad.genes)`. We can compare this to the microarray data which was observed to converge.
+
+```{r mad_3}
+load(file=file.path(data.dir, "microarray_filtered.RData"))
+dataMA <- microarray.dat
+hist(dataMA, main="Microarray Expression Levels")
+```
+
+
+```{r mad_4}
+mean.v.ma <- apply(dataMA, 1, mean)
+sd.v.ma   <- apply(dataMA, 1, sd)
+mad.v.ma  <- apply(dataMA, 1, mad)
+hist(sd.v.ma/mad.v.ma, main="Microarray SD/MAD Ratios")
+```
+
+```{r mad_5}
+bad.genes.ma <- sd.v.ma/mad.v.ma > th
+plot(sd.v.ma, mean.v.ma, col=ifelse(bad.genes.ma, "red", "black"), cex=0.3, main="Microarray Mean vs. SD")
+```
+
+```{r mad_6}
+# Filter out bad genes.
+dataM.good <- dataM[!bad.genes,]
+
+# Create matrix for each group.
+tar <- samTab0$Call
+wb  <- which(tar=="Basal")
+wla <- which(tar=="LumA")
+wlb <- which(tar=="LumB")
+MAM.basal <- dataM.good[, wb]
+MAM.LA    <- dataM.good[, wla]
+MAM.LB    <- dataM.good[, wlb]
+
+# Standardize row within each group.
+stdize <- function(gene){
+  # Make zero mean.
+  gene <- gene - mean(gene)
+  
+  # Make sum of squares one.
+  gene <- gene/sqrt(sum(gene^2))
+  
+  return(gene)
+}
+
+MAM.LA.std <- MAM.LA
+for(r in 1:nrow(MAM.LA)){
+  MAM.LA.std[r,] <- stdize(MAM.LA[r,])
+}
+
+MAM.LB.std <- MAM.LB
+for(r in 1:nrow(MAM.LB)){
+  MAM.LB.std[r,] <- stdize(MAM.LB[r,])
+}
+
+MAM.basal.std <- MAM.basal
+for(r in 1:nrow(MAM.basal)){
+  MAM.basal.std[r,] <- stdize(MAM.basal[r,])
+}
+
+# Histogram of standardized RNAseq expression values.
+hist(MAM.LA.std, main="RNAseq Luminal A Standardized Expression")
+hist(MAM.LB.std, main="RNAseq Luminal B Standardized Expression")
+```
+
+Running DCM on the LumA vs LumB data, we find that it does not converge in 10 iterations. In fact, even the set sizes failed to converge. A plot of the set sizes can be found below.
+
+```{r set_sizes}
+load("/Users/kevinoconnor/Documents/Research/DCM/Test/2018_08_29 11:33:06/No QR/Debug_Output/DCM_1.RData")
+plot(sapply(DCM$it_sets, length), xlim=c(0, 11), main="RNAseq DCM Set Sizes", ylab="Set Size")
+```
+
+We can compare this to the row-normalized microarray data which also did not converge.
+
+```{r microarray1}
+load("/Users/kevinoconnor/Documents/Research/DCM/Test/2018_08_29 11:33:06/Microarray No QR Filtered by SD over MAD/Debug_Output/DCM_1.RData")
+plot(sapply(DCM$it_sets, length), xlim=c(0, 11), main="RNAseq DCM Set Sizes", ylab="Set Size")
+```
+
+# Mean Differential Correlation
+
+In this section we will track the mean differential correlation of the active set, $A$, at different points in the algorithm. We begin by investigating the initialization performed during DCM for the RNAseq data.
+```{r mean_diff_cor1}
+load("/Users/kevinoconnor/Documents/Research/DCM/Test/2018_08_29 11:33:06/No QR/Debug_Output/Initialization.RData")
+
+# Calculate difference of correlation matrices.
+cor.LA <- MAM.LA.std %*% t(MAM.LA.std)
+cor.LB <- MAM.LB.std %*% t(MAM.LB.std)
+diff.cor <- cor.LA - cor.LB
+
+# Get mean differential correlation of active set at each iteration.
+init.diff.cor <- c()
+for(i in 1:length(initialization$sets)){
+  A <- initialization$sets[[i]]
+  init.diff.cor <- c(init.diff.cor, mean(diff.cor[A,A]))
+}
+plot(init.diff.cor, main="Mean Differential Correlation during Initialization", ylab="Mean Differential Correlation", xlab="Iteration")
+```
+
+The plot above tracks the following at each iteration,
+\[ \frac{1}{|A|^2}\sum\limits_{i\in A}\sum\limits_{j \in A} (\mathbb{R}_1 - \mathbb{R}_2)_{ij} \]
+as an aggregate measure of the differential correlation of the set $A$. Interestingly, we see that a maximum is reached around the 50th iteration, and a steady decreasing trend is observed until the end of initialization.
+
+Now we will look at the mean differential correlation during the iterative testing portion of the algorithm.
+
+```{r mean_diff_cor2}
+load("/Users/kevinoconnor/Documents/Research/DCM/Test/2018_08_29 11:33:06/No QR/Debug_Output/DCM_1.RData")
+
+diff.cor.v <- c()
+for(i in 1:(length(DCM$it_sets)-1)){
+  A <- DCM$it_sets[[i]]
+  diff.cor.v <- c(diff.cor.v, mean(diff.cor[A,A]))
+}
+
+plot(diff.cor.v, main="Mean Differential Correlation during Iterative Testing", ylab="Mean Differential Correlation", xlab="Iteration")
+```
+
+Note that we see a large drop off in mean differential correlation from where the algorithm was initialized. This indicates that the iterative testing procedure is not selecting elements of the DC set appropriately. 
+
+
+# P-values
+
+Next we take a look at the p-values that were observed during this test.
+
+```{r p_vals1}
+for(i in c(1, 5, 10)){
+  hist(DCM$it_p_vals[[i]], main=paste0("P-values from Iteration ", i))
+}
+```
+
+Clearly an error has occurred at some point in the p-value computation as this distribution is basically nonsense.

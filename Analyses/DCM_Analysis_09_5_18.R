@@ -1,9 +1,6 @@
-# TITLE: DCM_Analysis_08_24_18.R
+# TITLE: DCM_Analysis_09_5_18.R
 # AUTHOR: Kevin O'Connor
-# DATE MODIFIED: 8/24/18
-
-# In this script, we are testing the DCM algorithm on data which has been
-#  filtered based on mean vs standard deviation.
+# DATE MODIFIED: 9/5/18
 
 # Switches.
 is.test <- TRUE
@@ -50,9 +47,18 @@ dataM <- filter_data(dataM0,
 
 # Investigate mean vs standard deviation.
 mean.v <- apply(dataM, 1, mean)
+mad.v <- apply(dataM, 1, mad)
 sd.v   <- apply(dataM, 1, sd)
-plot(mean.v, sd.v)
+hist(mad.v/sd.v)
 
+mat.1 <- sapply(1:ncol(dataM0), function(c){c/mad.v[c]})
+
+scaled.data <- dataM / mad.v 
+bad.genes <- rowSums(scaled.data > 5) > 0
+plot(mean.v, sd.v, col=ifelse(bad.genes==1, "red", "black"), cex=0.3)
+
+mean(bad.genes)
+hist(dataM[!bad.genes, ])
 # Filter by mean vs std
 dataM.old <- dataM
 dataM <- dataM[(mean.v > -2.5) & (mean.v < 0),]
@@ -102,6 +108,11 @@ if(plot.test.stats){
   yfit <- yfit*diff(h$mids[1:2])*length(x) 
   lines(xfit, yfit, col="blue", lwd=2)
 }
+
+cor.LA    <- cor(MAM.LA.std)
+cor.LB    <- cor(MAM.LB.std)
+cor.basal <- cor(MAM.basal.std)
+
 
 #epsilon <- 10e-05
 #problem.idcs <- which(abs(DCM$it_test_stats[[3]]) <= epsilon)
