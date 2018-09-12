@@ -19,6 +19,7 @@ run_DCM_KO <- function(mat.1,
 	it_test_var   <- list()
 	it_p_vals     <- list()
 	it_sets       <- list(seed)
+	it_diff_cor   <- list()
 
 	# Find dimensions.	
 	n1   <- ncol(mat.1) 
@@ -35,6 +36,12 @@ run_DCM_KO <- function(mat.1,
 	diags      <- FALSE
 	startdels  <- c()
 	
+	# Initialize list of differential correlations.
+	# Store mean differential correlation.
+	M1A.cor <- M1[idcs[A]] %*% t(M1[idcs[A]])
+	M2A.cor <- M2[idcs[A]] %*% t(M2[idcs[A]])
+	it_diff_cor[[1]] <- mean(M1A.cor-M2A.cor)
+	
 	# Continue searching until convergence on non-degenerate set
 	while(difference > 0 & length(A) > 5){
 		# Start iteration timer.
@@ -48,13 +55,17 @@ run_DCM_KO <- function(mat.1,
 	  y2 <- mat.2[-A,]
 	  
     # Calculate standard errors.
-    sd <- sqrt(makeVars(y1, xA1) + makeVars(y2, xA2))
-    sds <- sqrt(sapply(1:nrow(xA1), function(x) makeVar(xA1[x,], xA1[-x,]) + makeVar(xA2[x,], xA2[-x,])))
+    #sd <- sqrt(sapply(1:nrow(y1), function(var){sqrt(makeVar_KO(y1[var,], xA1)^2/n1 + makeVar_KO(y2[var,], xA2)^2/n2)}))
+    #sds <- sqrt(sapply(1:nrow(xA1), function(var){sqrt(makeVar_KO(xA1[var,], xA1[-var,])^2/n1 
+    #                                                   + makeVar_KO(xA2[var,], xA2[-var,])^2/n2)}))
+	  sd <- sqrt(makeVars(y1, xA1)^2/n1 + makeVars(y2, xA2)^2/n2)
+	  sds <- sqrt(sapply(1:nrow(xA1), function(x){makeVar(xA1[x,], xA1[-x,])^2/n1 + makeVar(xA2[x,], xA2[-x,])^2/n2}))
     
     std.errs <- 1:p
     std.errs[-A] <- sd
     std.errs[A] <- sds
     
+    ## Calculate p-values for rows in outside of A.
     # Find mean vectors
     mean1 <- colMeans(xA1)
     mean2 <- colMeans(xA2)
@@ -64,51 +75,36 @@ run_DCM_KO <- function(mat.1,
     n_m2 <- sqrt(sum(mean2^2))
     
     # Length of A
-    k = length(A)
+    k <- length(A)
     
     # Find test quantities for all variables
-    corsm1 = t(cor(mean1, t(y1)))
-    corsm2 = t(cor(mean2, t(y2)))
+    corsm1 <- t(cor(mean1, t(y1)))
+    corsm2 <- t(cor(mean2, t(y2)))
     
     # Test stat and variance
-    obs = corsm1*n_m1 - corsm2*n_m2
-    
-    #sd = sqrt(makePhi(n_m1*corsm1, n_m1^2 - 1/k, k)/n1 + makePhi(n_m2*corsm2, n_m2^2 - 1/k, k)/n2)
-    #sd = sqrt(makeYvars(y1, mean1, y2, mean2))
-    sd = sqrt(makeVars(y1, xA1) + makeVars(y2, xA2))
-    
+    obs <- corsm1*n_m1 - corsm2*n_m2
     
     # p-values for rows not in A
-    test_out = pt(-obs/sd, min(c(n1-1, n2-1)), 0)
-    #test_out = pnorm(-obs, 0, sd)
-    
+    test_out <- pt(-obs/sd, min(c(n1-1, n2-1)), 0)
     
     ## Calculate p-values for rows in A
-    
     # Adjust means to not include row
-    mean1s = -t(t(xA1) - mean1*k)/(k-1)
-    mean2s = -t(t(xA2) - mean2*k)/(k-1)
+    mean1s <- -t(t(xA1) - mean1*k)/(k-1)
+    mean2s <- -t(t(xA2) - mean2*k)/(k-1)
     
     # Find new mean norms
-    n_m1s = sqrt(rowSums(mean1s*mean1s))
-    n_m2s = sqrt(rowSums(mean2s*mean2s))
+    n_m1s <- sqrt(rowSums(mean1s*mean1s))
+    n_m2s <- sqrt(rowSums(mean2s*mean2s))
     
     # Find cors of rows with means
-#    corsm1 = rowMeans(stdize(mean1s)*xA1)*n1
-#    corsm2 = rowMeans(stdize(mean2s)*xA2)*n2
-    corsm1 = rowMeans(stdize_KO(mean1s)*xA1)*n1
-    corsm2 = rowMeans(stdize_KO(mean2s)*xA2)*n2    
+    corsm1 <- rowMeans(stdize_KO(mean1s)*xA1)*n1
+    corsm2 <- rowMeans(stdize_KO(mean2s)*xA2)*n2    
     
-    # Make test stat and variance
-    obss = corsm1*n_m1s - corsm2*n_m2s
-    
-    #sds = sqrt(makePhi(n_m1s*corsm1, n_m1s^2 - 1/(k-1), k-1)/n1 + makePhi(n_m2s*corsm2, n_m2s^2 - 1/(k-1), k-1)/n2)
-    #sds = sapply(1:k, function(x) sqrt(makeYvar(xA1[x,], mean1s[x,], xA2[x,], mean2s[x,])))
-    sds = sqrt(sapply(1:k, function(x) makeVar(xA1[x,], xA1[-x,]) + makeVar(xA2[x,], xA2[-x,])))
+    # Compute test statistic.
+    obss <- corsm1*n_m1s - corsm2*n_m2s
     
     # Find pvals
-    test_in = pt(-obss/sds, min(c(n1-1, n2-1)), 0)
-    #test_in = pnorm(-obss, 0, sds)
+    test_in <- pt(-obss/sds, min(c(n1-1, n2-1)), 0)
     
     # Combine all p-values
     test = idcs
@@ -116,7 +112,7 @@ run_DCM_KO <- function(mat.1,
     test[A] = test_in
   	
   	# Update A to include significant rows
-  	newA = bhy(test, alpha = alpha)
+  	newA <- bhy(test, alpha = alpha)
   
   	# Check for convergence
   	if(it >= max.iter){
@@ -190,6 +186,11 @@ run_DCM_KO <- function(mat.1,
   	it_p_vals[[it]] <- test
 	  it_test_stats[[it]] <- c(obs, obss)
 	  it_test_var[[it]] <- c(sd^2, sds^2)
+	  
+	  # Store mean differential correlation.
+	  M1A.cor <- M1[idcs[A]] %*% t(M1[idcs[A]])
+	  M2A.cor <- M2[idcs[A]] %*% t(M2[idcs[A]])
+	  it_diff_cor[[it+1]] <- mean(M1A.cor-M2A.cor)
   } #while(difference > 0 & length(A) > 10)
 	
 	# New length of A
@@ -229,5 +230,6 @@ run_DCM_KO <- function(mat.1,
 	            it_p_vals = it_p_vals, 
 	            it_test_stats = it_test_stats,
 	            it_test_var = it_test_var,
-	            it_times = it_times))
+	            it_times = it_times,
+	            it_diff_cor = it_diff_cor))
 }
