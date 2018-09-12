@@ -1,43 +1,48 @@
 init_DCM <- function(M1, M2, k, start =c(), del = c()){
 	 # Takes pre-prepared Matrix (standardized and optionally Quantile Normalized). Looks for high correlation in M1 and low/negative correlation in M2, finds group of size k.
-   sets <- list()
-   it_times <- list()
    
-   if(length(del) != 0){
-      # Record dimension
-	  	real_p = dim(M1)[1]
-		  idcs = (1:real_p)[-del]
-
-		  # Remove ignored rows
-		  M1 = M1[-del,]
-		  M2 = M2[-del,]
-	 } else {
-	  	# Record dimension
-		  p = dim(M1)[1]
-		  idcs = 1:p
-	 }
-	
-    
-   # Lengths
-    n1 = dim(M1)[2]
-    n2 = dim(M2)[2]
-    
-    # Find size
+  # Initialize output lists.
+  sets <- list()
+  it_times <- list()
+  diff_cors <- list()
+  scores <- list()
+  p_vals <- list()
+   
+  if(length(del) != 0){
+    # Record dimension
+  	real_p = dim(M1)[1]
+    idcs = (1:real_p)[-del]
+  
+    # Remove ignored rows
+    M1 = M1[-del,]
+    M2 = M2[-del,]
+  } else {
+  	# Record dimension
     p = dim(M1)[1]
-
-	# Start with prespecified row set or with a random k rows.
-	if(length(start) == k){
-		A = start
-	}else{
-		A = sample(length(idcs), k)
-	}
+    idcs = 1:p
+  }
 	
-	# Save starting point
-	orig_A = A
-
-	# Make list of all indices, and of those not in seed set
-	P = 1:p
-	notA = P[!(P %in% A)]
+    
+  # Lengths
+  n1 = dim(M1)[2]
+  n2 = dim(M2)[2]
+  
+  # Find size
+  p = dim(M1)[1]
+  
+  # Start with prespecified row set or with a random k rows.
+  if(length(start) == k){
+    A = start
+  }else{
+    A = sample(length(idcs), k)
+  }
+  
+  # Save starting point
+  orig_A = A
+  
+  # Make list of all indices, and of those not in seed set
+  P = 1:p
+  notA = P[!(P %in% A)]
 
 	# Initialize for loop
 	done = FALSE
@@ -53,6 +58,9 @@ init_DCM <- function(M1, M2, k, start =c(), del = c()){
 	cross_2 = round(M2 %*% t(M2[A,]), digits = 10)
 	cross_2[cross_2 == 1] = 0
 	cross_2 = fisher(cross_2)*sqrt(n2 - 3)
+	
+	# Store first score.
+	scores[[1]] <- sum(cross_1[idcs[A],] - cross_2[idcs[A],])
 
 	# Note: resulting matrices have rows in order of data indices, columns correspond to values of A in the order listed by A
 
@@ -92,10 +100,35 @@ init_DCM <- function(M1, M2, k, start =c(), del = c()){
 			done = TRUE
 		}else{
 			# Find in and out data labels
-			
 			out = A[best_out]
 			inn = notA[best_in]
-		
+			
+			# Compute p-value (out of curiosity).
+			n1 <- ncol(M1)
+			n2 <- ncol(M2)
+			# Store separate data matrices.
+			xA1 <- M1[A,]
+			xA2 <- M2[A,]
+			y1 <- M1[inn,]
+			y2 <- M2[inn,]
+			# Calculate standard error.
+			sd <- sqrt(makeVar(y1, xA1)^2/n1 + makeVar(y2, xA2)^2/n2)
+			# Find mean vectors
+			mean1 <- colMeans(xA1)
+			mean2 <- colMeans(xA2)
+			# Find norms
+			n_m1 <- sqrt(sum(mean1^2))
+			n_m2 <- sqrt(sum(mean2^2))
+			# Length of A
+			k <- length(A)
+			# Find test quantities for all variables
+			corsm1 <- t(cor(mean1, y1))
+			corsm2 <- t(cor(mean2, y2))
+			# Test stat and variance
+			obs <- corsm1*n_m1 - corsm2*n_m2
+			# Calculate and store p-value.
+			p_vals[[it+1]] <- pt(-obs/sd, min(c(n1-1, n2-1)), 0)
+			
 			# Switch "out" and "in" indices from their lists
 			A[best_out] = inn
 			notA[best_in] = out
@@ -119,11 +152,20 @@ init_DCM <- function(M1, M2, k, start =c(), del = c()){
 			# Increase iteration count
 			it = it + 1
 			
+			# Store score.
+			scores[[it+1]] <- sum(cross_1[idcs[A],] - cross_2[idcs[A],])
+			
 			# Store new set A.
 			sets[[it+1]] <- idcs[A]
 			
 			# Store iteration time.
 			it_times[[it]] <- difftime(Sys.time(), it_start, units="secs")
+			
+			# Store mean differential correlation.
+			M1A.cor <- M1[idcs[A]] %*% t(M1[idcs[A]])
+			M2A.cor <- M2[idcs[A]] %*% t(M2[idcs[A]])
+			diff_cors[[it]] <- mean(M1A.cor-M2A.cor)
+			
 		}
 	}
 	time = difftime(Sys.time(), start, units="secs")
@@ -131,5 +173,13 @@ init_DCM <- function(M1, M2, k, start =c(), del = c()){
 	# Translate back to real indices
 	A = idcs[A]
 	
-	return(list(seed = orig_A, found = A, iterations = it, time = time, sets = sets, it_times = it_times))	
+	return(list(seed = orig_A, 
+	            found = A, 
+	            iterations = it, 
+	            time = time, 
+	            sets = sets, 
+	            it_times = it_times,
+	            diff_cors = diff_cors,
+	            scores = scores,
+	            p_vals = p_vals))	
 }
