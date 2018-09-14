@@ -38,8 +38,8 @@ run_DCM_KO <- function(mat.1,
 	
 	# Initialize list of differential correlations.
 	# Store mean differential correlation.
-	M1A.cor <- M1[idcs[A]] %*% t(M1[idcs[A]])
-	M2A.cor <- M2[idcs[A]] %*% t(M2[idcs[A]])
+	M1A.cor <- mat.1[idcs[A]] %*% t(mat.1[idcs[A]])
+	M2A.cor <- mat.2[idcs[A]] %*% t(mat.2[idcs[A]])
 	it_diff_cor[[1]] <- mean(M1A.cor-M2A.cor)
 	
 	# Continue searching until convergence on non-degenerate set
@@ -188,8 +188,8 @@ run_DCM_KO <- function(mat.1,
 	  it_test_var[[it]] <- c(sd^2, sds^2)
 	  
 	  # Store mean differential correlation.
-	  M1A.cor <- M1[idcs[A]] %*% t(M1[idcs[A]])
-	  M2A.cor <- M2[idcs[A]] %*% t(M2[idcs[A]])
+	  M1A.cor <- mat.1[idcs[A]] %*% t(mat.1[idcs[A]])
+	  M2A.cor <- mat.2[idcs[A]] %*% t(mat.2[idcs[A]])
 	  it_diff_cor[[it+1]] <- mean(M1A.cor-M2A.cor)
   } #while(difference > 0 & length(A) > 10)
 	
