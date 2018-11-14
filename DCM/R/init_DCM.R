@@ -1,34 +1,43 @@
-init_DCM <-
-function(M1, M2, k, start =c(), del = c()){
-	# Takes pre-prepared Matrix (standardized and optionally Quantile Normalized). Looks for high correlation in M1 and low/negative correlation in M2, finds group of size k.
+init_DCM <- function(M1, M2, k, start=c(), del=c()){
+	# Takes pre-prepared Matrix (standardized and optionally Quantile Normalized).
+  #  Looks for high correlation in M1 and low/negative correlation in M2, finds 
+  #  group of size k.
+  
+  # Initialize validation data.
+  init.sets <- list()
+  it.scores <- list()
+  init.steps <- list()
+  
+  if(length(del) > 0){
+    # Record dimension
+    real_p = dim(M1)[1]
+    idcs = (1:real_p)[-del]
     
-   if(length(del) != 0){
-		# Record dimension
-		real_p = dim(M1)[1]
-		idcs = (1:real_p)[-del]
-
-		# Remove ignored rows
-		M1 = M1[-del,]
-		M2 = M2[-del,]
+    # Remove ignored rows
+    M1 = M1[-del,]
+    M2 = M2[-del,]
+    
+    init.steps <- cat("Removed the following variables before initializing:", del)
 	}else{
 		# Record dimension
 		p = dim(M1)[1]
 		idcs = 1:p
 	}
-	
     
-    # Lengths
-    n1 = dim(M1)[2]
-    n2 = dim(M2)[2]
-    
-    # Find size
-    p = dim(M1)[1]
+  # Lengths
+  n1 = dim(M1)[2]
+  n2 = dim(M2)[2]
+  
+  # Find size
+  p = dim(M1)[1]
 
 	# Start with prespecified row set or with a random k rows.
 	if(length(start) == k){
 		A = start
+		init.steps <- append(init.steps, cat("Starting from initial set:", start))
 	}else{
 		A = sample(length(idcs), k)
+		init.steps <- append(init.steps, "Starting from random set.")
 	}
 	
 	# Save starting point
@@ -49,29 +58,24 @@ function(M1, M2, k, start =c(), del = c()){
 	cross_2 = round(M2 %*% t(M2[A,]), digits = 10)
 	cross_2[cross_2 == 1] = 0
 	cross_2 = fisher(cross_2)*sqrt(n2 - 3)
-
 	# Note: resulting matrices have rows in order of data indices, columns correspond to values of A in the order listed by A
 
 	# Rowsums represent total of pairwise correlations between [row] and A	
 	rows_1 = rowSums(cross_1)
 	rows_2 = rowSums(cross_2)
 
+	# Initialize parameters.
 	d = (p-k)*k # Number of in/out swap combos
-	
-	# Count iterations
 	it = 0
-	
-	# Time it
-	start = Sys.time()
+	start.time = Sys.time()
 	
 	# Iterate until convergence
 	while(!done){
-    
-      	# Rowsum Differences
-		diffs12 = rows_1 - rows_2
-			
-		# Gain due to o is getting back the contribution of o from h, loss due to o is corrs for s
-		# Similarly for in
+    # Rowsum Differences
+    diffs12 = rows_1 - rows_2
+		
+		# Gain due to o is getting back the contribution of o from h, loss due to o 
+    #  is corrs for s. Similarly for in.
 		maxA <- function(i){			
 			temp = diffs12[notA] + c(cross_2[notA, i]) - c(cross_1[notA, i])
 			idx = which.max(temp)
@@ -83,12 +87,14 @@ function(M1, M2, k, start =c(), del = c()){
 		bestAs[,2] = bestAs[,2] - diffs12[A]
 		best_out = which.max(bestAs[,2])
 		best_in = bestAs[best_out,1]
+		
+		# Save new score.
+		it.scores <- append(it.scores, mean(diffs12[A]))
 
 		if(bestAs[best_out,2] <= 0){
 			done = TRUE
 		}else{
 			# Find in and out data labels
-			
 			out = A[best_out]
 			inn = notA[best_in]
 		
@@ -113,13 +119,20 @@ function(M1, M2, k, start =c(), del = c()){
 			cross_2[,best_out] = new_2
 			
 			# Increase iteration count
-			it = it + 1	
+			it = it + 1
+			init.sets[[it]] = A
 		}
 	}
-	time = difftime(Sys.time(), start, units="secs")
+	time = difftime(Sys.time(), start.time, units="secs")
 	
 	# Translate back to real indices
 	A = idcs[A]
 	
-	return(list(seed = orig_A, found = A, iterations = it, time = time))	
+	return(list(seed=orig_A, 
+	            found=A, 
+	            iterations=it, 
+	            time=time,
+	            init.sets=init.sets,
+	            it.scores=unlist(it.scores),
+	            init.steps=init.steps))	
 }
