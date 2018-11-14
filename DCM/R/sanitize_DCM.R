@@ -18,11 +18,11 @@ sanitize_DCM <- function(M1, M2, strict = "high"){
 		
 	if(strict == "high"){
 		
-		killrows = (1:p1)[which(na1 | na2 | lb1 | lb2 | ub1 | ub2 | var1 | var2)]
+		killrows = (1:p1)[na1 | na2 | lb1 | lb2 | ub1 | ub2 | var1 | var2]
 	
 	}else{
 		
-		killrows = (1:p1)[which(na1 | na2 | lb1 | lb2 | ub1 | ub2)]
+		killrows = (1:p1)[na1 | na2 | lb1 | lb2 | ub1 | ub2]
 	
 	}
 

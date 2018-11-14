@@ -14,7 +14,7 @@ makeVars <- function(Uis, M_A){
 	
 	mat = 1/4*rA^2*Uis^4 + rA*Y/2*Uis^2 + W^2*Uis^2 + Y^2/4 - W*Y*Uis - rA*W*Uis^3
 	
-	return(rowMeans(mat))
+	return(rowMeans(mat)/n1)
 	
 }
 
@@ -34,5 +34,7 @@ makeVar <- function(Ui, M_A){
 	
 	mat = 1/4*rA^2*Ui^4 + rA*Y/2*Ui^2 + W^2*Ui^2 + Y^2/4 - W*Y*Ui - rA*W*Ui^3
 
-	return(mean(mat))
+	
+	return(mean(mat)/n1)
+	
 }
