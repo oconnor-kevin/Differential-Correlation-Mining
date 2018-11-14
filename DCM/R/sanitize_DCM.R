@@ -1,4 +1,4 @@
-sanitize_DCM <- function(M1, M2, strict = "high"){
+sanitize_DCM <- function(M1, M2, strict = "high", validation = FALSE){
 	p1 = nrow(M1)
 	n1 = ncol(M1)
 	n2 = ncol(M2)
@@ -26,6 +26,17 @@ sanitize_DCM <- function(M1, M2, strict = "high"){
 	
 	}
 
-	return(killrows)
-	
+	if (validation){
+	  return(list("killrows"=killrows, 
+	              "na1"=na1, 
+	              "na2"=na2, 
+	              "lb1"=lb1, 
+	              "lb2"=lb2, 
+	              "ub1"=ub1, 
+	              "ub2"=ub2, 
+	              "var1"=var1, 
+	              "var2"=var2))
+	} else {
+	  return(killrows)  
+	}
 }
