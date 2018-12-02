@@ -2,3 +2,4 @@
 
 export(init_DCM)
 export(sanitize_DCM)
+export(stdize)
