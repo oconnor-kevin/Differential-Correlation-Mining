@@ -34,9 +34,9 @@ If \code{validation == TRUE}, list containing,
    \item M1 - Prepared data matrix for group 1.
    \item M2 - Prepared data matrix for group 2.
    \item idcs - Vector of rows which have been included.
-   \item preproc.steps - List containing strings that describe preprocessing
+   \item preproc.steps - Vector containing strings that describe preprocessing
    steps that were performed.
-   \item data.flags - List containing strings that describe any flags about
+   \item data.flags - Vector containing strings that describe any flags about
    the data that were observed.
 }
 Else, list containing,
