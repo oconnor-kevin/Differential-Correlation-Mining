@@ -1,6 +1,5 @@
-bhy <-
-function(pvals, alpha = 0.05){
-    
+# Benjamini-Yekutieli FDR control procedure.
+bhy <- function(pvals, alpha = 0.05){
     # Sorted p-vals
     sp = sort(pvals)
     
@@ -23,10 +22,8 @@ function(pvals, alpha = 0.05){
     }
 }
 
-
-bh <-
-function(pvals, alpha = 0.05){
-    
+# Benjamini-Hochberg FDR control procedure.
+bh <- function(pvals, alpha = 0.05){
     # Sorted p-vals
     sp = sort(pvals)
     
