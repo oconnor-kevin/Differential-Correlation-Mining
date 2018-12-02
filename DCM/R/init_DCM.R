@@ -1,26 +1,31 @@
+#' init_DCM
+#'
+#' Takes prepared Matrix (row-normalized and optionally Quantile Normalized).
+#'  Looks for high correlation in M1 and low/negative correlation in M2, finds 
+#'  group of size k to be used as initial set in iterative testing procedure.
+#'
+#' @param M1 p x n1 data matrix for group 1.
+#' @param M2 p x n2 data matrix for group 2.
+#' @param k Desired size of initial set.
+#' @param start Desired initial set.
+#' @param del Vector of variables to be excluded from initialization set.
+#'
+#' @return List containing,
+#' \itemize{
+#'    \item seed - Vector containing the seed set used.
+#'    \item found - Vector containing the terminating set to be used as initial 
+#'    set for iterative testing procedure.
+#'    \item iterations - Number of iterations performed.
+#'    \item time - Amount of time that the initialization procedure took.
+#'    \item init.sets - List containing set at each iteration.
+#'    \item it.scores - Vector containing the score for the set at each 
+#'    iteration.
+#'    \item init.steps - List containing strings that give information about 
+#'    what steps are performed during initialization.
+#' }
+#'
+#' @export
 init_DCM <- function(M1, M2, k, start = c(), del = c()){
-	# Takes prepared Matrix (standardized and optionally Quantile Normalized).
-  #  Looks for high correlation in M1 and low/negative correlation in M2, finds 
-  #  group of size k.
-  #
-  # Args:
-  #   M1: p x n1 data matrix for group 1.
-  #   M2: p x n2 data matrix for group 2.
-  #   k: Desired size of initial set.
-  #   start: Desired initial set.
-  #   del: Vector of variables to be excluded from initialization set.
-  #
-  # Returns:
-  #   List containing,
-  #     seed: Vector containing the seed set used.
-  #     found: Vector containing the terminating set to be used as initial set
-  #       for iterative testing procedure.
-  #     iterations: Number of iterations performed.
-  #     time: Amount of time that the initialization procedure took.
-  #     init.sets: List containing set at each iteration.
-  #     it.scores: Vector containing the score for the set at each iteration.
-  #     init.steps: List containing strings that give information about what 
-  #       steps are performed during initialization.
   # Initialize validation data.
   init.sets <- list()
   it.scores <- list()
