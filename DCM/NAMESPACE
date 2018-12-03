@@ -3,6 +3,8 @@
 export(bh)
 export(bhy)
 export(create_validation_doc)
+export(fisher)
+export(fisher_trunc)
 export(init_DCM)
 export(makeVar)
 export(makeVars)

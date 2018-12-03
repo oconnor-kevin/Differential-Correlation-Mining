@@ -22,7 +22,7 @@
 #'    \item var1 - Vector of rows in M1 with variance less than 
 #'    \code{1/(100*ncol(M1))}.
 #'    \item var2 - Vector of rows in M2 with variance less than
-#'    \cose{1/(100*ncol(M2))}.
+#'    \code{1/(100*ncol(M2))}.
 #' }
 #' Else, vector of rows to be removed.
 #'
