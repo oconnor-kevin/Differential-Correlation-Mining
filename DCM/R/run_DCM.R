@@ -37,6 +37,8 @@
 #'    each iteration.
 #'    \item it.diff.cor - Vector of mean differential correlations at each 
 #'    iteration.
+#'    \item reason.for.terminating - String describing reason why the algorithm
+#'    terminated.
 #'    \item flags - Vector of strings containing any warnings that arose during
 #'    the search.
 #' }
@@ -51,6 +53,8 @@
 #'    \item pvals - Vector of p-values produced at last iteration of testing 
 #'    procedure.
 #'    \item startdels - Vector of variables which were ignored.
+#'    \item reason.for.terminating - String describing reason why the algorithm
+#'    terminated.
 #' }
 #'
 #' @export
@@ -172,8 +176,8 @@ run_DCM <- function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05,
 		cycle.depth <- 0
 		cycling <- FALSE
 		A.sorted <- sort(newA)
-	  for(cyc.ind in 1:min(cycle.depth.to.check, it)){
-	    if(identical(A.sorted, sort(it.sets[[it-cyc.ind+1]]))){
+	  for(cyc.ind in 2:min(cycle.depth.to.check, it)){
+	    if(it > cyc.ind && identical(A.sorted, sort(it.sets[[it-cyc.ind+1]]))){
 	      cycling <- TRUE
 	      cycle.depth <- cyc.ind
 	      if(echo){print(paste0("Cycling observed of order ", cyc.ind, " observed."))}
@@ -191,7 +195,6 @@ run_DCM <- function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05,
 		# Check to see if algorithm is oscillating between two similar sets or 
 		# jumping sideways between sets.
 		if(cycle.depth == 2){
-			difference <- 0
 			overlap <- newA[newA %in% A]
 			# If oscillating, i.e. consecutive sets very similar, set new A to the
 			# overlap between current A and previous A.
@@ -199,7 +202,9 @@ run_DCM <- function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05,
 			       length(setdiff(overlap, A))/length(A)) < .05){
 			  if(echo){print("Oscillating observed. Setting new set to the intersection of current set and previous set.")}
 			  flags <- append(flags, "Oscillating observed. Setting new set to the intersection of current set and previous set.")
+			  reason.for.terminating <- "Oscillating between similar sets"
 				newA <- overlap
+				difference <- 0
 			} else {
         if(echo){print("Consecutive sets not similar enough, starting a new search.")}
 			  flags <- append(flags, "Consecutive sets not similar enough, starting a new search.")
@@ -271,6 +276,7 @@ run_DCM <- function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05,
 	              it.test.stats = it.test.stats,
 	              it.std.errs = it.std.errs,
 	              it.diff.cor = unlist(it.diff.cor),
+	              reason.for.terminating = reason.for.terminating,
 	              flags = unlist(flags)))
 	} else {
 	  return(list(found = found, 
@@ -279,6 +285,7 @@ run_DCM <- function(M1, M2, seed, del = c(), echo = FALSE, alpha = 0.05,
 	              its = it, 
 	              time = time, 
 	              pvals = test, 
-	              startdels = startdels))
+	              startdels = startdels,
+	              reason.for.terminating = reason.for.terminating))
 	}
 }

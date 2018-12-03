@@ -22,6 +22,9 @@ create_validation_doc <- function(validation.data, init.data,
                                   preproc.steps = list(), data.flags = list(),
                                   validation.dir = ''){
   sink(file.path(validation.dir, "DCM_Diagnostics_Text.txt"))
+  reason.for.terminating <- validation.data$reason.for.terminating
+  print(paste0("Reason for terminating: ", reason.for.terminating))
+  cat("\n\n")
   ##############################################################################
   # List preprocessing steps.
   print("The following steps were performed in preprocessing:")

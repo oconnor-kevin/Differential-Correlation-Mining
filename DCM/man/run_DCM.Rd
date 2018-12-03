@@ -51,6 +51,8 @@ If \code{validation==TRUE}, list containing,
    each iteration.
    \item it.diff.cor - Vector of mean differential correlations at each 
    iteration.
+   \item reason.for.terminating - String describing reason why the algorithm
+   terminated.
    \item flags - Vector of strings containing any warnings that arose during
    the search.
 }
@@ -65,6 +67,8 @@ Else, list containing,
    \item pvals - Vector of p-values produced at last iteration of testing 
    procedure.
    \item startdels - Vector of variables which were ignored.
+   \item reason.for.terminating - String describing reason why the algorithm
+   terminated.
 }
 }
 \description{
