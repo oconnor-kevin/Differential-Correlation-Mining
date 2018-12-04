@@ -133,7 +133,7 @@ DCM <- function(M1, M2, max.groups = 5, max.iter = 50, max.time = 1,
 		#  approximate fixed point (oscillating).
 		valid.termination <- FALSE
 		reinitialize <- FALSE
-		while(!valid.termination & length(startdels) < p &
+		while(!valid.termination & length(startdels) < p - est.size &
 		      difftime(Sys.time(), starttime, units = "hours") < max.time){
 		  # If we've already called run_DCM on this initial set and got an invalid
 		  #  termination, we need to reinitialize to avoid getting the same result.
