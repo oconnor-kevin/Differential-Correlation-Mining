@@ -9,7 +9,7 @@ Currently this package is not available from the CRAN R package repository. To u
 Once you have the code saved in a local directory, open up your R IDE and source the directory
 ```
 library(R.utils)
-sourceDirectory("~/Differential-Correlation-Mining/DCM", recursive=TRUE)
+sourceDirectory("~/Differential-Correlation-Mining/DCM")
 ```
 Now you are ready to use the DCM package! If you are using Rstudio and have the `devtools` package installed, you can enable our documentation by using the commands,
 ```
