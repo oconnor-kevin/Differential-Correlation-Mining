@@ -15,6 +15,3 @@ fisher <- function(r){
 	# Return fisher transform
 	return(.5*log((1+r)/(1-r)))
 }
-
-# Vectorize function.
-fisher <- Vectorize(fisher)

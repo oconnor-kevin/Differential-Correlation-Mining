@@ -67,9 +67,9 @@
 #' 
 #' @export
 DCM <- function(M1, M2, max.groups = 5, max.iter = 50, max.time = 1, 
-                est.size = 100, max.size = 1000, alpha = 0.05, start = c(), 
-                QN = FALSE, resid.full = FALSE, echo = FALSE, strict = "low", 
-                validation = FALSE, validation.dir = ''){
+                est.size = min(100, nrow(M1)/10), max.size = 1000, alpha = 0.05,
+                start = c(), QN = FALSE, resid.full = FALSE, echo = FALSE, 
+                strict = "low", validation = FALSE, validation.dir = ''){
   # Make sure validation directory is valid if validation==TRUE.
   if(validation & validation.dir == ""){
     validation.dir <- getwd()
@@ -104,9 +104,10 @@ DCM <- function(M1, M2, max.groups = 5, max.iter = 50, max.time = 1,
 	tottime <- 0
 	n.sets <- 1
 	startdels <- c() # Vars to delete.
-	
+
 	# Keep searching until all rows or exhausted, or max groups or time is reached
-	while(length(startdels) < p-est.size & n.sets <= max.groups & tottime < max.time){
+	while((is.null(startdels) || (length(startdels) < p - est.size)) & 
+	      (n.sets <= max.groups) & (tottime < max.time)){
 	  # Find initial starting set, ignoring starting points already tried.
 		if(length(start) < 5){
 		  if(validation & length(start) > 0){
@@ -132,7 +133,8 @@ DCM <- function(M1, M2, max.groups = 5, max.iter = 50, max.time = 1,
 		#  approximate fixed point (oscillating).
 		valid.termination <- FALSE
 		reinitialize <- FALSE
-		while(!valid.termination & difftime(Sys.time(), starttime, units = "hours") < max.time){
+		while(!valid.termination & length(startdels) < p &
+		      difftime(Sys.time(), starttime, units = "hours") < max.time){
 		  # If we've already called run_DCM on this initial set and got an invalid
 		  #  termination, we need to reinitialize to avoid getting the same result.
 		  if(reinitialize){
