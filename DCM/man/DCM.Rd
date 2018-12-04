@@ -5,9 +5,9 @@
 \title{DCM}
 \usage{
 DCM(M1, M2, max.groups = 5, max.iter = 50, max.time = 1,
-  est.size = nrow(M1)/10, max.size = 1000, alpha = 0.05,
-  start = c(), QN = FALSE, resid.full = FALSE, echo = FALSE,
-  strict = "low", validation = FALSE, validation.dir = "")
+  est.size = 100, max.size = 1000, alpha = 0.05, start = c(),
+  QN = FALSE, resid.full = FALSE, echo = FALSE, strict = "low",
+  validation = FALSE, validation.dir = "")
 }
 \arguments{
 \item{M1}{p x n1 data matrix for first group.}
