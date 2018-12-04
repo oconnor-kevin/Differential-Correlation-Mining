@@ -32,5 +32,15 @@ Please see the documentation for DCM.R for a complete list of options.
 ## Validation Features
 In our usage of the DCM algorithm, we found that at times we wanted a bit more information than is typically returned from each run to get a better idea of what the algorithm is doing behind the scenes. To this end, we have included a validation switch, `validation`, which when switched to `TRUE`, will create a pdf doc and txt doc that provides plots of p-values, test statistics, standard errors and other relevant quantities from each search. These will be saved in a folder called *DCM_Validation_Search{i}* where *i* is the search number that the plots correspond to, within the specified directory, `validation.dir`. If `validation==TRUE` and no `validation.dir` is specified, these documents will be saved in the current working directory.
 
+## Running the DCM Algorithm on Simulated Data
+You can run DCM on simulated data just as was done in the paper by using the `makeSim` function to generate data and then calling `DCM` on it. For example, try
+```
+sim.output <- makeSim(p=500, k=50, rho=0.6, n1=50, n2=40)
+dat1 <- sim.output$dat1
+dat2 <- sim.output$dat2
+DCM(dat1, dat2)
+```
+Note that since we use the `mvrnorm` function to generate multivariate normal random variables, making `p` large significantly slows things down.
+
 ## Questions?
 If you have questions about the details of the this method, please refer to Bodwin et al.'s *A testing-based approach to the discovery of differentially correlated variable sets*. If you have questions about how to use this code, please feel free to email Kevin O'Connor at koconn@live.unc.edu.
