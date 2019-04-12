@@ -3,6 +3,8 @@ Welcome to the Github repo for the DCM R and Matlab packages! These packages con
 
 This document will provide some tips and tricks for using the DCM R code successfully.
 
+Development of DCM is supported by NIH grants R01HG009125-03 and T32LM12420 and NSF grant DMS-1613072.
+
 ## Getting Started
 Currently this package is not available from the CRAN R package repository. To use it you should download it directly from Github. To do this, you can open up the repo in your favorite web browser and click the green **Clone or Download** button on the right.
 
